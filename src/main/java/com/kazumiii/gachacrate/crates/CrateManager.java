@@ -67,12 +67,10 @@ public class CrateManager {
     }
 
     public void saveCrates() {
-        // Clear old config to prevent deleted data from persisting
         cratesConfig.set("crates", null);
 
         for (Crate crate : crates.values()) {
             String cratePath = "crates." + crate.getName();
-            // Save pity/time-limit config if it exists
             if (crate.isPityEnabled()) {
                 cratesConfig.set(cratePath + ".pity-system.enabled", true);
                 cratesConfig.set(cratePath + ".pity-system.threshold", crate.getPityThreshold());
@@ -86,7 +84,6 @@ public class CrateManager {
 
             ConfigurationSection rewardsSection = cratesConfig.createSection(cratePath + ".rewards");
             for (Reward reward : crate.getRewards()) {
-                // Use the reward's persistent UUID as the key
                 String rewardId = reward.getUniqueId().toString();
                 String rewardPath = rewardId + ".";
                 
@@ -96,8 +93,11 @@ public class CrateManager {
 
                 if (reward.getType() == RewardType.ITEM) {
                     rewardsSection.set(rewardPath + "item", reward.getItem());
-                } else { // It's a COMMAND reward
+                } else {
                     rewardsSection.set(rewardPath + "command", reward.getCommand());
+                    if (reward.getPreviewItem() != null) {
+                        rewardsSection.set(rewardPath + "preview-item", reward.getPreviewItem());
+                    }
                 }
             }
         }
@@ -152,10 +152,11 @@ public class CrateManager {
                     Reward reward;
                     if (type == RewardType.ITEM) {
                         ItemStack item = rewardsSection.getItemStack(rewardPath + "item");
-                        reward = new Reward(uniqueId, type, item, null, rarity, chance);
-                    } else { // It's a COMMAND reward
+                        reward = new Reward(uniqueId, type, item, null, null, rarity, chance);
+                    } else {
                         String command = rewardsSection.getString(rewardPath + "command");
-                        reward = new Reward(uniqueId, type, null, command, rarity, chance);
+                        ItemStack previewItem = rewardsSection.getItemStack(rewardPath + "preview-item");
+                        reward = new Reward(uniqueId, type, null, command, previewItem, rarity, chance);
                     }
                     crate.addReward(reward);
                 }
@@ -164,4 +165,4 @@ public class CrateManager {
         }
         plugin.getLogger().info("Loaded " + crates.size() + " crates from config.");
     }
-                    }
+}
