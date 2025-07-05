@@ -48,10 +48,17 @@ public class CrateEditorMenu extends Menu {
                 displayItem = reward.getItem().clone();
                 meta = displayItem.getItemMeta();
                 lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-            } else {
-                displayItem = new ItemStack(Material.COMMAND_BLOCK);
+            } else { // It's a COMMAND reward
+                if (reward.getPreviewItem() != null) {
+                    displayItem = reward.getPreviewItem().clone();
+                } else {
+                    displayItem = new ItemStack(Material.COMMAND_BLOCK);
+                }
                 meta = displayItem.getItemMeta();
-                meta.setDisplayName(reward.getRarity().getColor() + "Command Reward");
+                // Ensure display name is set if it's a default command block
+                if (!meta.hasDisplayName()) {
+                    meta.setDisplayName(reward.getRarity().getColor() + "Command Reward");
+                }
                 lore = new ArrayList<>(Arrays.asList("§7Executes: §f/" + reward.getCommand()));
             }
             
@@ -118,5 +125,4 @@ public class CrateEditorMenu extends Menu {
             open(); // Refresh the menu
         }
     }
-    }
-    
+}
