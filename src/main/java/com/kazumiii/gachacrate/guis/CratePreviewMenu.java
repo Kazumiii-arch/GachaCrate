@@ -6,14 +6,17 @@ package com.kazumiii.gachacrate.guis;
 
 import com.kazumiii.gachacrate.crates.Crate;
 import com.kazumiii.gachacrate.crates.Reward;
+import com.kazumiii.gachacrate.crates.RewardType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class CratePreviewMenu extends Menu {
@@ -27,22 +30,37 @@ public class CratePreviewMenu extends Menu {
 
     @Override
     public void open() {
-        // Create an inventory with 54 slots, titled with the crate's name.
         inventory = Bukkit.createInventory(this, 54, "Preview: " + crate.getName());
 
-        // Populate the inventory with formatted reward items.
         for (Reward reward : crate.getRewards()) {
-            ItemStack displayItem = reward.getItem().clone();
-            ItemMeta meta = displayItem.getItemMeta();
-            if (meta != null) {
-                // Get existing lore or create a new list if none exists.
-                List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-                lore.add(""); // Add a blank line for spacing
-                lore.add("§r" + reward.getRarity().getDisplayName());
-                lore.add(ChatColor.GOLD + "Chance: " + ChatColor.YELLOW + reward.getChance() + "%");
-                meta.setLore(lore);
-                displayItem.setItemMeta(meta);
+            ItemStack displayItem;
+            ItemMeta meta;
+            List<String> lore;
+
+            if (reward.getType() == RewardType.ITEM) {
+                displayItem = reward.getItem().clone();
+                meta = displayItem.getItemMeta();
+                lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+            } else { // It's a COMMAND reward
+                if (reward.getPreviewItem() != null) {
+                    displayItem = reward.getPreviewItem().clone();
+                } else {
+                    displayItem = new ItemStack(Material.COMMAND_BLOCK);
+                }
+                meta = displayItem.getItemMeta();
+                // Ensure display name is set if it's a default command block
+                if (!meta.hasDisplayName()) {
+                    meta.setDisplayName(reward.getRarity().getColor() + "Command Reward");
+                }
+                // Hide the actual command from players in the preview
+                lore = new ArrayList<>(Collections.singletonList("§7???"));
             }
+            
+            lore.add("");
+            lore.add("§r" + reward.getRarity().getDisplayName());
+            lore.add(ChatColor.GOLD + "Chance: " + ChatColor.YELLOW + reward.getChance() + "%");
+            meta.setLore(lore);
+            displayItem.setItemMeta(meta);
             inventory.addItem(displayItem);
         }
 
