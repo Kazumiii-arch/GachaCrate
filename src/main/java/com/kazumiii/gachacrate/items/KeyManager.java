@@ -10,7 +10,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
-import java.util.Collections;
+import java.util.Arrays;
 
 public class KeyManager {
 
@@ -25,7 +25,13 @@ public class KeyManager {
         ItemMeta meta = key.getItemMeta();
         if (meta != null) {
             meta.setDisplayName("§6" + crateName + " Gacha Key");
-            meta.setLore(Collections.singletonList("§7Use this to open a " + crateName + " crate!"));
+            // Add more descriptive lore
+            meta.setLore(Arrays.asList(
+                "§7A special key for the " + crateName + " crate.",
+                "",
+                "§e► Right-click while holding this key",
+                "§e   to open the crate!"
+            ));
             // Store the crate name in the item's persistent data container
             meta.getPersistentDataContainer().set(keyIdKey, PersistentDataType.STRING, crateName.toLowerCase());
             key.setItemMeta(meta);
@@ -44,4 +50,3 @@ public class KeyManager {
         return null;
     }
 }
-
