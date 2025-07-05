@@ -1,9 +1,22 @@
-# ========================================================================
 # GachaCrate Plugin by Kazumiii - Main Configuration
 
 # Set the minimum rarity ID (from the list below) that should be announced
 # to the whole server when a player wins it.
 broadcast-minimum-rarity: "MYTHIC"
+
+# --- MESSAGES ---
+# You can customize the message a player receives the first time they get a key.
+# Use {player} for the player's name.
+messages:
+  first-key-welcome:
+    - "&e&l---------------------------------"
+    - "&6&lWelcome to Gacha Crates!"
+    - ""
+    - "&fYou've received your first key, {player}!"
+    - "&fTo use it, just &bhold the key in your hand§f and §bright-click§f."
+    - ""
+    - "&7You can preview crate rewards with &e/gacha view <name>"
+    - "&e&l---------------------------------"
 
 # Define all available rarities here.
 # 'order' is used to determine which rarities are "better" than others.
