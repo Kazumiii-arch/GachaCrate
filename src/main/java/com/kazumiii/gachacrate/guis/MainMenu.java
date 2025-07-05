@@ -5,12 +5,14 @@
 package com.kazumiii.gachacrate.guis;
 
 import com.kazumiii.gachacrate.GachaCrate;
+import com.kazumiii.gachacrate.conversation.CrateCreatePrompt;
 import com.kazumiii.gachacrate.crates.Crate;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.conversations.Conversation;
+import org.bukkit.conversations.ConversationFactory;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -46,8 +48,8 @@ public class MainMenu extends Menu {
         // Add a "Create New Crate" button
         ItemStack createItem = new ItemStack(Material.NETHER_STAR);
         ItemMeta createMeta = createItem.getItemMeta();
-        createMeta.setDisplayName(ChatColor.GREEN + "Create New Crate");
-        createMeta.setLore(Collections.singletonList(ChatColor.GRAY + "Click to create a new crate via chat."));
+        createMeta.setDisplayName(ChatColor.GREEN + "✚ Create New Crate");
+        createMeta.setLore(Collections.singletonList(ChatColor.GRAY + "Click to create a new crate."));
         createItem.setItemMeta(createMeta);
         inventory.setItem(53, createItem); // Place in the bottom right corner
 
@@ -64,9 +66,11 @@ public class MainMenu extends Menu {
         String itemName = ChatColor.stripColor(clickedItem.getItemMeta().getDisplayName());
 
         if (clickedItem.getType() == Material.NETHER_STAR) {
-            // TODO: Implement chat-based creation flow using Conversation API
+            // Start the crate creation conversation
             player.closeInventory();
-            player.sendMessage(ChatColor.YELLOW + "This feature is coming soon! For now, use " + ChatColor.GOLD + "/gacha create <name>");
+            ConversationFactory cf = new ConversationFactory(GachaCrate.getInstance());
+            Conversation convo = cf.withFirstPrompt(new CrateCreatePrompt()).withLocalEcho(false).buildConversation(player);
+            convo.begin();
         } else if (clickedItem.getType() == Material.CHEST) {
             Crate crate = GachaCrate.getInstance().getCrateManager().getCrate(itemName);
             if (crate != null) {
