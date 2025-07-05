@@ -8,16 +8,23 @@ import com.kazumiii.gachacrate.GachaCrate;
 import com.kazumiii.gachacrate.crates.Crate;
 import com.kazumiii.gachacrate.crates.Rarity;
 import com.kazumiii.gachacrate.crates.Reward;
+import com.kazumiii.gachacrate.crates.RewardType;
 import com.kazumiii.gachacrate.guis.CrateEditorMenu;
 import com.kazumiii.gachacrate.guis.CratePreviewMenu;
+import com.kazumiii.gachacrate.guis.MainMenu;
 import com.kazumiii.gachacrate.player.PlayerData;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class GachaCommand implements CommandExecutor {
 
@@ -30,21 +37,52 @@ public class GachaCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sendHelpMessage(sender);
+            if (!(sender instanceof Player)) {
+                sender.sendMessage("Please use '/gacha help' to see available console commands.");
+                return true;
+            }
+            Player player = (Player) sender;
+            if (!player.hasPermission("gacha.admin")) {
+                player.sendMessage("§cUnknown command. Type \"/help\" for help.");
+                return true;
+            }
+            new MainMenu(player).open();
             return true;
         }
 
         String subCommand = args[0].toLowerCase();
 
         switch (subCommand) {
-            case "create": handleCreateCommand(sender, args); break;
-            case "delete": handleDeleteCommand(sender, args); break;
-            case "additem": handleAddItemCommand(sender, args); break;
-            case "edit": handleEditCommand(sender, args); break;
-            case "givekey": handleGiveKeyCommand(sender, args); break;
-            case "view": handleViewCommand(sender, args); break;
-            case "stats": handleStatsCommand(sender, args); break;
-            default: sender.sendMessage("§cUnknown subcommand. Use /gacha for help."); break;
+            case "help":
+                sendHelpMessage(sender);
+                break;
+            case "create":
+                handleCreateCommand(sender, args);
+                break;
+            case "delete":
+                handleDeleteCommand(sender, args);
+                break;
+            case "additem":
+                handleAddItemCommand(sender, args);
+                break;
+            case "addcmd":
+                handleAddCmdCommand(sender, args);
+                break;
+            case "edit":
+                handleEditCommand(sender, args);
+                break;
+            case "givekey":
+                handleGiveKeyCommand(sender, args);
+                break;
+            case "view":
+                handleViewCommand(sender, args);
+                break;
+            case "stats":
+                handleStatsCommand(sender, args);
+                break;
+            default:
+                sender.sendMessage("§cUnknown subcommand. Use /gacha help.");
+                break;
         }
 
         return true;
@@ -52,10 +90,11 @@ public class GachaCommand implements CommandExecutor {
 
     private void sendHelpMessage(CommandSender sender) {
         sender.sendMessage("§a§lGachaCrate Help");
+        sender.sendMessage("§e/gacha §7- Opens the main admin GUI.");
         sender.sendMessage("§e/gacha create <name> §7- Creates a new crate.");
         sender.sendMessage("§e/gacha delete <name> §7- Deletes a crate permanently.");
         sender.sendMessage("§e/gacha additem <crate> <rarity> <chance> §7- Adds item in hand.");
-        sender.sendMessage("§e/gacha edit <crate> §7- Opens the editor for a crate.");
+        sender.sendMessage("§e/gacha addcmd <crate> <rarity> <chance> <cmd> §7- Adds a command reward.");
         sender.sendMessage("§e/gacha givekey <player> <crate> [amount] §7- Gives a player a crate key.");
         sender.sendMessage("§e/gacha view <crate> §7- Shows the possible rewards in a crate.");
         sender.sendMessage("§e/gacha stats [player] §7- Shows crate opening stats.");
@@ -144,6 +183,41 @@ public class GachaCommand implements CommandExecutor {
         player.sendMessage("§aSuccess! Added " + itemInHand.getType().name() + " to the '" + crateName + "' crate.");
     }
 
+    private void handleAddCmdCommand(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("gacha.admin.addcmd")) {
+            sender.sendMessage("§cYou do not have permission to use this command.");
+            return;
+        }
+        if (args.length < 5) {
+            sender.sendMessage("§cUsage: /gacha addcmd <crate> <rarity> <chance> <command>");
+            sender.sendMessage("§cExample: /gacha addcmd epic_crate MYTHIC 1.0 lp user {player} parent set vip");
+            return;
+        }
+        String crateName = args[1];
+        Crate crate = plugin.getCrateManager().getCrate(crateName);
+        if (crate == null) {
+            sender.sendMessage("§cError: Crate '" + crateName + "' not found.");
+            return;
+        }
+        Rarity rarity = plugin.getRarityManager().getRarity(args[2]);
+        if (rarity == null) {
+            sender.sendMessage("§cError: Invalid rarity. Available: " + plugin.getRarityManager().getRarityIds());
+            return;
+        }
+        double chance;
+        try {
+            chance = Double.parseDouble(args[3]);
+        } catch (NumberFormatException e) {
+            sender.sendMessage("§cError: Invalid chance specified.");
+            return;
+        }
+        String commandToExecute = Arrays.stream(args, 4, args.length).collect(Collectors.joining(" "));
+        Reward reward = new Reward(commandToExecute, rarity, chance);
+        crate.addReward(reward);
+        plugin.getCrateManager().saveCrates();
+        sender.sendMessage("§aSuccess! Added command reward to '" + crateName + "' crate.");
+    }
+
     private void handleEditCommand(CommandSender sender, String[] args) {
         if (!(sender instanceof Player)) {
             sender.sendMessage("§cThis command can only be run by a player.");
@@ -204,6 +278,17 @@ public class GachaCommand implements CommandExecutor {
         target.getInventory().addItem(key);
         sender.sendMessage("§aSuccess! Gave " + target.getName() + " " + amount + "x " + crate.getName() + " key(s).");
         target.sendMessage("§aYou have received " + amount + "x " + crate.getName() + " key(s).");
+        
+        PlayerData playerData = plugin.getPlayerManager().getPlayerData(target.getUniqueId());
+        if (playerData != null && !playerData.hasReceivedFirstKey()) {
+            List<String> welcomeMessage = plugin.getConfig().getStringList("messages.first-key-welcome");
+            for (String line : welcomeMessage) {
+                String formattedLine = ChatColor.translateAlternateColorCodes('&', line)
+                        .replace("{player}", target.getName());
+                target.sendMessage(formattedLine);
+            }
+            playerData.setHasReceivedFirstKey(true);
+        }
     }
 
     private void handleViewCommand(CommandSender sender, String[] args) {
@@ -252,13 +337,11 @@ public class GachaCommand implements CommandExecutor {
             }
             target = (Player) sender;
         }
-
         PlayerData data = plugin.getPlayerManager().getPlayerData(target.getUniqueId());
         if (data == null) {
             sender.sendMessage("§cCould not load data for that player.");
             return;
         }
-
         sender.sendMessage("§a§l--- Crate Stats for " + target.getName() + " ---");
         if (data.getCratesOpenedMap().isEmpty()) {
             sender.sendMessage("§7No crates opened yet.");
@@ -268,5 +351,5 @@ public class GachaCommand implements CommandExecutor {
             });
         }
     }
-  }
-            
+            }
+                
