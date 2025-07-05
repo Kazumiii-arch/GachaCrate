@@ -14,7 +14,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Arrays;
-import java.util.Collections;
 
 public class CrateSettingsMenu extends Menu {
 
@@ -29,35 +28,28 @@ public class CrateSettingsMenu extends Menu {
     public void open() {
         inventory = Bukkit.createInventory(this, 27, "Settings: " + crate.getName());
 
-        // Create the control items
         ItemStack viewRewards = new ItemStack(Material.CHEST);
         ItemMeta viewMeta = viewRewards.getItemMeta();
         viewMeta.setDisplayName(ChatColor.AQUA + "View & Edit Rewards");
-        viewMeta.setLore(Arrays.asList(ChatColor.GRAY + "Click to see all rewards.", ChatColor.GRAY + "Right-click rewards to remove them."));
+        viewMeta.setLore(Arrays.asList(ChatColor.GRAY + "Add, remove, or edit the", ChatColor.GRAY + "rewards inside this crate."));
         viewRewards.setItemMeta(viewMeta);
 
-        ItemStack addItem = new ItemStack(Material.DIAMOND);
-        ItemMeta addMeta = addItem.getItemMeta();
-        addMeta.setDisplayName(ChatColor.GREEN + "Add Item Reward");
-        addMeta.setLore(Collections.singletonList(ChatColor.GRAY + "Use /gacha additem to add the item in your hand."));
-        addItem.setItemMeta(addMeta);
+        // We can add buttons for pity/time-limit settings here in the future
         
-        ItemStack addCmd = new ItemStack(Material.COMMAND_BLOCK);
-        ItemMeta cmdMeta = addCmd.getItemMeta();
-        cmdMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "Add Command Reward");
-        cmdMeta.setLore(Collections.singletonList(ChatColor.GRAY + "Use /gacha addcmd to add a command reward."));
-        addCmd.setItemMeta(cmdMeta);
-
         ItemStack deleteCrate = new ItemStack(Material.BARRIER);
         ItemMeta deleteMeta = deleteCrate.getItemMeta();
         deleteMeta.setDisplayName(ChatColor.RED + "" + ChatColor.BOLD + "DELETE CRATE");
-        deleteMeta.setLore(Arrays.asList(ChatColor.DARK_RED + "This action is permanent", ChatColor.DARK_RED + "and cannot be undone."));
+        deleteMeta.setLore(Arrays.asList(ChatColor.DARK_RED + "This action is permanent."));
         deleteCrate.setItemMeta(deleteMeta);
+        
+        ItemStack backButton = new ItemStack(Material.ARROW);
+        ItemMeta backMeta = backButton.getItemMeta();
+        backMeta.setDisplayName(ChatColor.YELLOW + "« Back to Crate List");
+        backButton.setItemMeta(backMeta);
 
-        inventory.setItem(10, viewRewards);
-        inventory.setItem(12, addItem);
-        inventory.setItem(14, addCmd);
-        inventory.setItem(16, deleteCrate);
+        inventory.setItem(13, viewRewards);
+        inventory.setItem(22, deleteCrate);
+        inventory.setItem(18, backButton);
 
         player.openInventory(inventory);
     }
@@ -65,28 +57,18 @@ public class CrateSettingsMenu extends Menu {
     @Override
     public void handleMenu(InventoryClickEvent event) {
         event.setCancelled(true);
+        if (event.getCurrentItem() == null) return;
         
-        if (event.getCurrentItem() == null || event.getCurrentItem().getType() == Material.AIR) {
-            return;
-        }
-        
-        Material clickedType = event.getCurrentItem().getType();
-
-        switch (clickedType) {
+        switch (event.getCurrentItem().getType()) {
             case CHEST:
-                // Open the existing editor menu
                 new CrateEditorMenu(player, crate).open();
                 break;
-            case DIAMOND:
-            case COMMAND_BLOCK:
-                // For now, just close and send a message
-                player.closeInventory();
-                player.sendMessage(ChatColor.YELLOW + "Please use the respective add command for now.");
-                break;
             case BARRIER:
-                // TODO: Open a dedicated confirmation menu before deleting
                 player.closeInventory();
-                player.sendMessage(ChatColor.YELLOW + "Deletion confirmation coming soon! For now, use " + ChatColor.GOLD + "/gacha delete <name>");
+                player.sendMessage("§cFor safety, please use §e/gacha delete " + crate.getName());
+                break;
+            case ARROW:
+                new MainMenu(player).open();
                 break;
             default:
                 break;
