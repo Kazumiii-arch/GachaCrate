@@ -1,5 +1,14 @@
 # GachaCrate Plugin by Kazumiii - Main Configuration
 
+# --- KEY APPEARANCE ---
+# Customize the look of all gacha keys.
+key-appearance:
+  # The material to use for the key. A list of valid materials can be found here:
+  # https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html
+  material: "TRIPWIRE_HOOK"
+  # Set to true to make the key have an enchantment glow.
+  glowing: true
+
 # Set the minimum rarity ID (from the list below) that should be announced
 # to the whole server when a player wins it.
 broadcast-minimum-rarity: "MYTHIC"
