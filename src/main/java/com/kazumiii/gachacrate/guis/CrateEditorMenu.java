@@ -41,27 +41,35 @@ public class CrateEditorMenu extends Menu {
         // Display all existing rewards
         for (Reward reward : crate.getRewards()) {
             ItemStack displayItem;
-            ItemMeta meta;
-            List<String> lore;
 
+            // Determine the base item for the reward
             if (reward.getType() == RewardType.ITEM) {
                 displayItem = reward.getItem().clone();
-                meta = displayItem.getItemMeta();
-                lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
             } else { // It's a COMMAND reward
                 if (reward.getPreviewItem() != null) {
                     displayItem = reward.getPreviewItem().clone();
                 } else {
                     displayItem = new ItemStack(Material.COMMAND_BLOCK);
                 }
-                meta = displayItem.getItemMeta();
-                // Ensure display name is set if it's a default command block
-                if (!meta.hasDisplayName()) {
+            }
+
+            // Get a fresh ItemMeta to avoid conflicts
+            ItemMeta meta = displayItem.getItemMeta();
+            List<String> lore;
+
+            // Set up the lore based on reward type
+            if (reward.getType() == RewardType.ITEM) {
+                lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+            } else {
+                // For commands, we create a clean lore to show the command info
+                lore = new ArrayList<>();
+                if (!meta.hasDisplayName()) { // Set a default name if the preview item doesn't have one
                     meta.setDisplayName(reward.getRarity().getColor() + "Command Reward");
                 }
-                lore = new ArrayList<>(Arrays.asList("§7Executes: §f/" + reward.getCommand()));
+                lore.add("§7Executes: §f/" + reward.getCommand());
             }
             
+            // Add the standardized info footer to the lore
             lore.add("");
             lore.add("§eRarity: " + reward.getRarity().getDisplayName());
             lore.add("§eChance: §f" + reward.getChance() + "%");
@@ -70,12 +78,15 @@ public class CrateEditorMenu extends Menu {
             lore.add("§c► Right-Click to Remove");
             meta.setLore(lore);
             
+            // Embed the unique ID into the item's data container. This is the crucial step.
             meta.getPersistentDataContainer().set(rewardIdKey, PersistentDataType.STRING, reward.getUniqueId().toString());
+            
+            // Apply the fully modified meta back to the item
             displayItem.setItemMeta(meta);
             inventory.addItem(displayItem);
         }
 
-        // --- NEW BUTTONS ---
+        // --- GUI Control Buttons ---
         ItemStack backButton = new ItemStack(Material.BARRIER);
         ItemMeta backMeta = backButton.getItemMeta();
         backMeta.setDisplayName(ChatColor.RED + "« Back to Settings");
@@ -110,11 +121,17 @@ public class CrateEditorMenu extends Menu {
 
         // Handle reward clicks
         ItemMeta meta = clicked.getItemMeta();
-        if (meta == null || !meta.getPersistentDataContainer().has(rewardIdKey, PersistentDataType.STRING)) return;
+        if (meta == null || !meta.getPersistentDataContainer().has(rewardIdKey, PersistentDataType.STRING)) {
+            // This check should now pass correctly.
+            return;
+        }
 
         UUID rewardId = UUID.fromString(meta.getPersistentDataContainer().get(rewardIdKey, PersistentDataType.STRING));
         Reward targetReward = crate.getRewardById(rewardId);
-        if (targetReward == null) return;
+        if (targetReward == null) {
+            player.sendMessage(ChatColor.RED + "Error: That reward could not be found.");
+            return;
+        }
 
         if (event.isLeftClick()) {
             new RewardEditorMenu(player, crate, targetReward).open();
