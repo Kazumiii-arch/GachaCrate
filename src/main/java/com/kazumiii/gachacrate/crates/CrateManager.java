@@ -67,12 +67,27 @@ public class CrateManager {
     }
 
     public void saveCrates() {
+        // Clear old config to prevent deleted data from persisting
         cratesConfig.set("crates", null);
+
         for (Crate crate : crates.values()) {
             String cratePath = "crates." + crate.getName();
+            // Save pity/time-limit config if it exists
+            if (crate.isPityEnabled()) {
+                cratesConfig.set(cratePath + ".pity-system.enabled", true);
+                cratesConfig.set(cratePath + ".pity-system.threshold", crate.getPityThreshold());
+                cratesConfig.set(cratePath + ".pity-system.pity-rarity-minimum", crate.getPityRarityMinimum());
+            }
+            if (crate.isTimeLimitEnabled()) {
+                cratesConfig.set(cratePath + ".time-limit.enabled", true);
+                cratesConfig.set(cratePath + ".time-limit.start-date", crate.getStartDate().toString());
+                cratesConfig.set(cratePath + ".time-limit.end-date", crate.getEndDate().toString());
+            }
+
             ConfigurationSection rewardsSection = cratesConfig.createSection(cratePath + ".rewards");
             for (Reward reward : crate.getRewards()) {
-                String rewardId = UUID.randomUUID().toString();
+                // Use the reward's persistent UUID as the key
+                String rewardId = reward.getUniqueId().toString();
                 String rewardPath = rewardId + ".";
                 
                 rewardsSection.set(rewardPath + "type", reward.getType().name());
@@ -122,29 +137,31 @@ public class CrateManager {
             if (cratesSection.contains(crateName + ".rewards")) {
                 ConfigurationSection rewardsSection = cratesSection.getConfigurationSection(crateName + ".rewards");
                 for (String rewardId : rewardsSection.getKeys(false)) {
+                    UUID uniqueId = UUID.fromString(rewardId);
                     String rewardPath = rewardId + ".";
                     
                     RewardType type = RewardType.valueOf(rewardsSection.getString(rewardPath + "type", "ITEM"));
                     Rarity rarity = plugin.getRarityManager().getRarity(rewardsSection.getString(rewardPath + "rarity"));
                     double chance = rewardsSection.getDouble(rewardPath + "chance");
 
-                    if (rarity == null) continue;
+                    if (rarity == null) {
+                        plugin.getLogger().warning("Could not load a reward in crate '" + crateName + "' because its rarity is invalid. Skipping.");
+                        continue;
+                    }
 
+                    Reward reward;
                     if (type == RewardType.ITEM) {
                         ItemStack item = rewardsSection.getItemStack(rewardPath + "item");
-                        if (item != null) {
-                            crate.addReward(new Reward(item, rarity, chance));
-                        }
+                        reward = new Reward(uniqueId, type, item, null, rarity, chance);
                     } else { // It's a COMMAND reward
                         String command = rewardsSection.getString(rewardPath + "command");
-                        if (command != null && !command.isEmpty()) {
-                            crate.addReward(new Reward(command, rarity, chance));
-                        }
+                        reward = new Reward(uniqueId, type, null, command, rarity, chance);
                     }
+                    crate.addReward(reward);
                 }
             }
             crates.put(crateName.toLowerCase(), crate);
         }
         plugin.getLogger().info("Loaded " + crates.size() + " crates from config.");
     }
-}
+                    }
