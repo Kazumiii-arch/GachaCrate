@@ -50,6 +50,8 @@ public class PlayerManager {
                     data.getPityCounts().put(crateName.toLowerCase(), config.getInt("pity-counts." + crateName))
                 );
             }
+            // Load the new flag, defaulting to false if it doesn't exist
+            data.setHasReceivedFirstKey(config.getBoolean("has-received-first-key", false));
         }
         playerDataMap.put(uuid, data);
     }
@@ -64,6 +66,9 @@ public class PlayerManager {
 
         data.getCratesOpenedMap().forEach((crateName, count) -> config.set("crates-opened." + crateName, count));
         data.getPityCounts().forEach((crateName, count) -> config.set("pity-counts." + crateName, count));
+
+        // Save the new flag
+        config.set("has-received-first-key", data.hasReceivedFirstKey());
 
         try {
             config.save(playerFile);
