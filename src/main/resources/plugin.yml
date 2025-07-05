@@ -1,1 +1,71 @@
+// ========================================================================
+// File: plugin.yml
+// Location: /src/main/resources/plugin.yml
+// ========================================================================
+name: GachaCrate
+version: '1.2.0'
+main: com.kazumiii.gachacrate.GachaCrate
+api-version: '1.20'
+author: Kazumiii
+description: A Minecraft Survival server gacha crate plugin with full in-game editing.
+commands:
+  gacha:
+    description: Main command for the GachaCrate plugin.
+    usage: /gacha <subcommand>
+    aliases: [gc, crate]
+permissions:
+  gacha.*:
+    description: Grants access to all GachaCrate features.
+    children:
+      - gacha.admin
+      - gacha.user
+  gacha.admin:
+    description: Grants access to all admin commands.
+    children:
+      - gacha.admin.create
+      - gacha.admin.delete
+      - gacha.admin.additem
+      - gacha.admin.edit
+      - gacha.admin.givekey
+      - gacha.admin.stats.other
+  gacha.user:
+    description: Grants access to all user-level commands and actions.
+    children:
+      - gacha.user.open.*
+      - gacha.user.view
+      - gacha.user.stats.self
+  
+  # Admin Permissions
+  gacha.admin.create:
+    description: Allows creating new crates.
+    default: op
+  gacha.admin.delete:
+    description: Allows deleting existing crates.
+    default: op
+  gacha.admin.additem:
+    description: Allows adding items to crates.
+    default: op
+  gacha.admin.edit:
+    description: Allows editing crate rewards via GUI.
+    default: op
+  gacha.admin.givekey:
+    description: Allows giving crate keys to players.
+    default: op
+  gacha.admin.stats.other:
+    description: Allows viewing the stats of other players.
+    default: op
 
+  # User Permissions
+  gacha.user.view:
+    description: Allows players to use the /gacha view command.
+    default: true
+  gacha.user.stats.self:
+    description: Allows a player to view their own stats.
+    default: true
+  gacha.user.open.*:
+    description: Allows opening of all crates.
+    default: op
+  gacha.user.open.<crate>:
+    description: Allows opening a specific crate.
+    default: true
+    
