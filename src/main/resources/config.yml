@@ -1,1 +1,32 @@
+# ========================================================================
+# GachaCrate Plugin by Kazumiii - Main Configuration
 
+# Set the minimum rarity ID (from the list below) that should be announced
+# to the whole server when a player wins it.
+broadcast-minimum-rarity: "MYTHIC"
+
+# Define all available rarities here.
+# 'order' is used to determine which rarities are "better" than others.
+# Higher numbers are better. Used for broadcast and pity checks.
+rarities:
+  COMMON:
+    display-name: "&fCommon"
+    color: "WHITE"
+    order: 1
+  RARE:
+    display-name: "&9Rare"
+    color: "BLUE"
+    order: 2
+  EPIC:
+    display-name: "&5Epic"
+    color: "DARK_PURPLE"
+    order: 3
+  MYTHIC:
+    display-name: "&6Mythic"
+    color: "GOLD"
+    order: 4
+  DIVINE:
+    display-name: "&bDivine"
+    color: "AQUA"
+    order: 5
+    
