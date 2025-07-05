@@ -9,6 +9,7 @@ import com.kazumiii.gachacrate.crates.Crate;
 import com.kazumiii.gachacrate.crates.CrateOpener;
 import com.kazumiii.gachacrate.crates.Rarity;
 import com.kazumiii.gachacrate.crates.Reward;
+import com.kazumiii.gachacrate.crates.RewardType;
 import com.kazumiii.gachacrate.player.PlayerData;
 import org.bukkit.*;
 import org.bukkit.entity.Firework;
@@ -53,7 +54,17 @@ public class CrateAnimationMenu extends Menu {
                 for (int i = 0; i < inventory.getSize(); i++) {
                     if (rewards.isEmpty()) break;
                     Reward randomReward = rewards.get(random.nextInt(rewards.size()));
-                    inventory.setItem(i, randomReward.getItem());
+                    
+                    // Display the correct item during the spin
+                    if (randomReward.getType() == RewardType.ITEM) {
+                        inventory.setItem(i, randomReward.getItem());
+                    } else {
+                        if (randomReward.getPreviewItem() != null) {
+                            inventory.setItem(i, randomReward.getPreviewItem());
+                        } else {
+                            inventory.setItem(i, new ItemStack(Material.COMMAND_BLOCK));
+                        }
+                    }
                 }
                 player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 1.5f);
                 ticks += 2;
@@ -85,18 +96,35 @@ public class CrateAnimationMenu extends Menu {
             inventory.setItem(i, placeholder);
         }
 
-        inventory.setItem(13, finalReward.getItem());
+        // Determine what to display in the final slot
+        ItemStack displayItem;
+        if (finalReward.getType() == RewardType.ITEM) {
+            displayItem = finalReward.getItem();
+        } else {
+            if (finalReward.getPreviewItem() != null) {
+                displayItem = finalReward.getPreviewItem();
+            } else {
+                displayItem = new ItemStack(Material.COMMAND_BLOCK);
+            }
+        }
+        inventory.setItem(13, displayItem);
         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
         checkAndBroadcast(finalReward);
 
         new BukkitRunnable() {
             @Override
             public void run() {
-                if (player.getInventory().firstEmpty() == -1) {
-                    player.getWorld().dropItem(player.getLocation(), finalReward.getItem());
-                    player.sendMessage(ChatColor.YELLOW + "Your inventory was full, so the reward was dropped at your feet!");
+                if (finalReward.getType() == RewardType.ITEM) {
+                    if (player.getInventory().firstEmpty() == -1) {
+                        player.getWorld().dropItem(player.getLocation(), finalReward.getItem());
+                        player.sendMessage(ChatColor.YELLOW + "Your inventory was full, so the item was dropped at your feet!");
+                    } else {
+                        player.getInventory().addItem(finalReward.getItem());
+                    }
                 } else {
-                    player.getInventory().addItem(finalReward.getItem());
+                    String command = finalReward.getCommand().replace("{player}", player.getName());
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+                    player.sendMessage("§aYou have received a special command reward!");
                 }
                 player.closeInventory();
             }
@@ -112,9 +140,20 @@ public class CrateAnimationMenu extends Menu {
 
         if (reward.getRarity().getOrder() >= minRarity.getOrder()) {
             spawnFirework(player);
-            String itemName = reward.getItem().hasItemMeta() && reward.getItem().getItemMeta().hasDisplayName()
-                ? reward.getItem().getItemMeta().getDisplayName()
-                : reward.getItem().getType().name().replace('_', ' ');
+            
+            String itemName;
+            if (reward.getType() == RewardType.ITEM) {
+                itemName = reward.getItem().hasItemMeta() && reward.getItem().getItemMeta().hasDisplayName()
+                    ? reward.getItem().getItemMeta().getDisplayName()
+                    : reward.getItem().getType().name().replace('_', ' ');
+            } else {
+                if (reward.getPreviewItem() != null && reward.getPreviewItem().hasItemMeta() && reward.getPreviewItem().getItemMeta().hasDisplayName()) {
+                    itemName = reward.getPreviewItem().getItemMeta().getDisplayName();
+                } else {
+                    itemName = reward.getRarity().getDisplayName() + " §rCommand Reward";
+                }
+            }
+
             String broadcastMessage = "§6[GachaCrate] §r" + player.getName() + " has won a " +
                 reward.getRarity().getDisplayName() + "§r item: " + itemName + "§r from a " + crate.getName() + " crate!";
             Bukkit.broadcastMessage(broadcastMessage);
@@ -134,5 +173,4 @@ public class CrateAnimationMenu extends Menu {
     public void handleMenu(InventoryClickEvent event) {
         event.setCancelled(true);
     }
-                      }
-      
+            }
