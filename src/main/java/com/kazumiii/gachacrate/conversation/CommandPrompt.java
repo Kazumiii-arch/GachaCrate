@@ -24,10 +24,11 @@ public class CommandPrompt extends StringPrompt {
 
     @Override
     public String getPromptText(ConversationContext context) {
-        if (!context.getSessionData().containsKey("command")) {
+        // Use getAllSessionData() to get the map and then check the key
+        if (!context.getAllSessionData().containsKey("command")) {
             return "§eEnter the command to run (without '/'). Use {player} as a placeholder. Type 'cancel' to abort.";
         }
-        if (!context.getSessionData().containsKey("rarity")) {
+        if (!context.getAllSessionData().containsKey("rarity")) {
             return "§eNow enter the rarity ID for this command reward.";
         }
         return "§eFinally, enter the drop chance for this command reward (e.g., 5.5).";
@@ -42,15 +43,16 @@ public class CommandPrompt extends StringPrompt {
             return END_OF_CONVERSATION;
         }
 
-        if (!context.getSessionData().containsKey("command")) {
+        // Use getAllSessionData() to get the map and then check the key
+        if (!context.getAllSessionData().containsKey("command")) {
             context.setSessionData("command", input);
             return this; // Ask for rarity next
         }
 
-        if (!context.getSessionData().containsKey("rarity")) {
+        if (!context.getAllSessionData().containsKey("rarity")) {
             Rarity rarity = GachaCrate.getInstance().getRarityManager().getRarity(input);
             if (rarity == null) {
-                player.sendMessage("§cInvalid rarity! Please try again.");
+                player.sendMessage("§cInvalid rarity! Please try again. Available: " + GachaCrate.getInstance().getRarityManager().getRarityIds());
                 return this;
             }
             context.setSessionData("rarity", rarity);
