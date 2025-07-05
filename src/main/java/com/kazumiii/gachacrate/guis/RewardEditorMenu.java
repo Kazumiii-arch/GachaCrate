@@ -42,7 +42,12 @@ public class RewardEditorMenu extends Menu {
         if (reward.getType() == RewardType.ITEM) {
             displayItem = reward.getItem().clone();
         } else {
-            displayItem = new ItemStack(Material.COMMAND_BLOCK);
+            // If a preview item is set, use it. Otherwise, use a command block.
+            if (reward.getPreviewItem() != null) {
+                displayItem = reward.getPreviewItem().clone();
+            } else {
+                displayItem = new ItemStack(Material.COMMAND_BLOCK);
+            }
         }
         ItemMeta displayMeta = displayItem.getItemMeta();
         displayMeta.setDisplayName(ChatColor.YELLOW + "Editing Reward");
@@ -81,7 +86,20 @@ public class RewardEditorMenu extends Menu {
         inventory.setItem(14, chanceButton);
         inventory.setItem(18, backButton);
 
-        player.openInventory(inventory);
+        // --- ADD NEW BUTTON FOR COMMAND REWARDS ---
+        if (reward.getType() == RewardType.COMMAND) {
+            ItemStack previewButton = new ItemStack(Material.ITEM_FRAME);
+            ItemMeta previewMeta = previewButton.getItemMeta();
+            previewMeta.setDisplayName(ChatColor.YELLOW + "Set Preview Item");
+            previewMeta.setLore(Arrays.asList(
+                    ChatColor.GRAY + "Set the item that represents",
+                    ChatColor.GRAY + "this command in menus.",
+                    "",
+                    ChatColor.YELLOW + "► Click to change."
+            ));
+            previewButton.setItemMeta(previewMeta);
+            inventory.setItem(16, previewButton); // Place next to chance button
+        }
     }
 
     @Override
@@ -102,6 +120,10 @@ public class RewardEditorMenu extends Menu {
                 player.closeInventory();
                 Conversation chanceConvo = cf.withFirstPrompt(new ChancePrompt(crate, reward)).withLocalEcho(false).buildConversation(player);
                 chanceConvo.begin();
+                break;
+            case ITEM_FRAME:
+                // This button only appears for command rewards
+                new SetPreviewItemMenu(player, crate, reward).open();
                 break;
             case BARRIER:
                 new CrateEditorMenu(player, crate).open();
