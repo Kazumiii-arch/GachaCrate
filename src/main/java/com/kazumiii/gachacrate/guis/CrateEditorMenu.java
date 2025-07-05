@@ -38,6 +38,7 @@ public class CrateEditorMenu extends Menu {
     public void open() {
         inventory = Bukkit.createInventory(this, 54, "Edit Rewards: " + crate.getName());
 
+        // Display all existing rewards
         for (Reward reward : crate.getRewards()) {
             ItemStack displayItem;
             ItemMeta meta;
@@ -62,18 +63,24 @@ public class CrateEditorMenu extends Menu {
             lore.add("§c► Right-Click to Remove");
             meta.setLore(lore);
             
-            // Embed the unique ID into the item's data for reliable identification
             meta.getPersistentDataContainer().set(rewardIdKey, PersistentDataType.STRING, reward.getUniqueId().toString());
             displayItem.setItemMeta(meta);
             inventory.addItem(displayItem);
         }
 
-        // Add the back button
+        // --- NEW BUTTONS ---
         ItemStack backButton = new ItemStack(Material.BARRIER);
         ItemMeta backMeta = backButton.getItemMeta();
         backMeta.setDisplayName(ChatColor.RED + "« Back to Settings");
         backButton.setItemMeta(backMeta);
-        inventory.setItem(45, backButton); // Bottom-left corner
+        inventory.setItem(45, backButton);
+
+        ItemStack addRewardButton = new ItemStack(Material.NETHER_STAR);
+        ItemMeta addMeta = addRewardButton.getItemMeta();
+        addMeta.setDisplayName(ChatColor.GREEN + "✚ Add New Reward");
+        addMeta.setLore(Arrays.asList(ChatColor.GRAY + "Click to add a new item or", ChatColor.GRAY + "command reward to this crate."));
+        addRewardButton.setItemMeta(addMeta);
+        inventory.setItem(53, addRewardButton);
 
         player.openInventory(inventory);
     }
@@ -82,37 +89,34 @@ public class CrateEditorMenu extends Menu {
     public void handleMenu(InventoryClickEvent event) {
         event.setCancelled(true);
         ItemStack clicked = event.getCurrentItem();
-
         if (clicked == null || clicked.getType() == Material.AIR) return;
 
-        // Handle back button click
+        // Handle button clicks
         if (clicked.getType() == Material.BARRIER) {
             new CrateSettingsMenu(player, crate).open();
             return;
         }
-
-        ItemMeta meta = clicked.getItemMeta();
-        if (meta == null || !meta.getPersistentDataContainer().has(rewardIdKey, PersistentDataType.STRING)) return;
-
-        // Find the reward using the unique ID stored in the item
-        UUID rewardId = UUID.fromString(meta.getPersistentDataContainer().get(rewardIdKey, PersistentDataType.STRING));
-        Reward targetReward = crate.getRewardById(rewardId);
-        if (targetReward == null) {
-            player.sendMessage(ChatColor.RED + "Error: Could not find that reward. It may have been removed.");
-            open(); // Refresh the menu
+        if (clicked.getType() == Material.NETHER_STAR) {
+            new RewardTypeSelectionMenu(player, crate).open();
             return;
         }
 
+        // Handle reward clicks
+        ItemMeta meta = clicked.getItemMeta();
+        if (meta == null || !meta.getPersistentDataContainer().has(rewardIdKey, PersistentDataType.STRING)) return;
+
+        UUID rewardId = UUID.fromString(meta.getPersistentDataContainer().get(rewardIdKey, PersistentDataType.STRING));
+        Reward targetReward = crate.getRewardById(rewardId);
+        if (targetReward == null) return;
+
         if (event.isLeftClick()) {
-            // Open the new editor for this specific reward
             new RewardEditorMenu(player, crate, targetReward).open();
         } else if (event.isRightClick()) {
-            // Remove the reward
             crate.removeReward(targetReward);
             GachaCrate.getInstance().getCrateManager().saveCrates();
             player.sendMessage(ChatColor.GREEN + "Reward removed successfully.");
-            // Re-open the menu to show the change
-            open();
+            open(); // Refresh the menu
         }
     }
-}
+    }
+    
