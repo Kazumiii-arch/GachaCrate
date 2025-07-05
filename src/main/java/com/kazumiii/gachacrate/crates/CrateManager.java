@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -54,6 +55,10 @@ public class CrateManager {
     public Crate getCrate(String name) {
         return crates.get(name.toLowerCase());
     }
+    
+    public Map<String, Crate> getAllCrates() {
+        return Collections.unmodifiableMap(crates);
+    }
 
     public void deleteCrate(String crateName) {
         crates.remove(crateName.toLowerCase());
@@ -68,9 +73,17 @@ public class CrateManager {
             ConfigurationSection rewardsSection = cratesConfig.createSection(cratePath + ".rewards");
             for (Reward reward : crate.getRewards()) {
                 String rewardId = UUID.randomUUID().toString();
-                rewardsSection.set(rewardId + ".item", reward.getItem());
-                rewardsSection.set(rewardId + ".rarity", reward.getRarity().getId());
-                rewardsSection.set(rewardId + ".chance", reward.getChance());
+                String rewardPath = rewardId + ".";
+                
+                rewardsSection.set(rewardPath + "type", reward.getType().name());
+                rewardsSection.set(rewardPath + "rarity", reward.getRarity().getId());
+                rewardsSection.set(rewardPath + "chance", reward.getChance());
+
+                if (reward.getType() == RewardType.ITEM) {
+                    rewardsSection.set(rewardPath + "item", reward.getItem());
+                } else { // It's a COMMAND reward
+                    rewardsSection.set(rewardPath + "command", reward.getCommand());
+                }
             }
         }
         try {
@@ -109,11 +122,24 @@ public class CrateManager {
             if (cratesSection.contains(crateName + ".rewards")) {
                 ConfigurationSection rewardsSection = cratesSection.getConfigurationSection(crateName + ".rewards");
                 for (String rewardId : rewardsSection.getKeys(false)) {
-                    ItemStack item = rewardsSection.getItemStack(rewardId + ".item");
-                    Rarity rarity = plugin.getRarityManager().getRarity(rewardsSection.getString(rewardId + ".rarity"));
-                    double chance = rewardsSection.getDouble(rewardId + ".chance");
-                    if (item != null && rarity != null) {
-                        crate.addReward(new Reward(item, rarity, chance));
+                    String rewardPath = rewardId + ".";
+                    
+                    RewardType type = RewardType.valueOf(rewardsSection.getString(rewardPath + "type", "ITEM"));
+                    Rarity rarity = plugin.getRarityManager().getRarity(rewardsSection.getString(rewardPath + "rarity"));
+                    double chance = rewardsSection.getDouble(rewardPath + "chance");
+
+                    if (rarity == null) continue;
+
+                    if (type == RewardType.ITEM) {
+                        ItemStack item = rewardsSection.getItemStack(rewardPath + "item");
+                        if (item != null) {
+                            crate.addReward(new Reward(item, rarity, chance));
+                        }
+                    } else { // It's a COMMAND reward
+                        String command = rewardsSection.getString(rewardPath + "command");
+                        if (command != null && !command.isEmpty()) {
+                            crate.addReward(new Reward(command, rarity, chance));
+                        }
                     }
                 }
             }
@@ -121,4 +147,4 @@ public class CrateManager {
         }
         plugin.getLogger().info("Loaded " + crates.size() + " crates from config.");
     }
-                      }
+}
