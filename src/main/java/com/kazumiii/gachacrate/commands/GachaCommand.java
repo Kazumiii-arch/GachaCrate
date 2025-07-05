@@ -1,1 +1,272 @@
+// ========================================================================
+// File: GachaCommand.java
+// Location: /src/main/java/com/kazumiii/gachacrate/commands/GachaCommand.java
+// ========================================================================
+package com.kazumiii.gachacrate.commands;
 
+import com.kazumiii.gachacrate.GachaCrate;
+import com.kazumiii.gachacrate.crates.Crate;
+import com.kazumiii.gachacrate.crates.Rarity;
+import com.kazumiii.gachacrate.crates.Reward;
+import com.kazumiii.gachacrate.guis.CrateEditorMenu;
+import com.kazumiii.gachacrate.guis.CratePreviewMenu;
+import com.kazumiii.gachacrate.player.PlayerData;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+
+public class GachaCommand implements CommandExecutor {
+
+    private final GachaCrate plugin;
+
+    public GachaCommand(GachaCrate plugin) {
+        this.plugin = plugin;
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (args.length == 0) {
+            sendHelpMessage(sender);
+            return true;
+        }
+
+        String subCommand = args[0].toLowerCase();
+
+        switch (subCommand) {
+            case "create": handleCreateCommand(sender, args); break;
+            case "delete": handleDeleteCommand(sender, args); break;
+            case "additem": handleAddItemCommand(sender, args); break;
+            case "edit": handleEditCommand(sender, args); break;
+            case "givekey": handleGiveKeyCommand(sender, args); break;
+            case "view": handleViewCommand(sender, args); break;
+            case "stats": handleStatsCommand(sender, args); break;
+            default: sender.sendMessage("§cUnknown subcommand. Use /gacha for help."); break;
+        }
+
+        return true;
+    }
+
+    private void sendHelpMessage(CommandSender sender) {
+        sender.sendMessage("§a§lGachaCrate Help");
+        sender.sendMessage("§e/gacha create <name> §7- Creates a new crate.");
+        sender.sendMessage("§e/gacha delete <name> §7- Deletes a crate permanently.");
+        sender.sendMessage("§e/gacha additem <crate> <rarity> <chance> §7- Adds item in hand.");
+        sender.sendMessage("§e/gacha edit <crate> §7- Opens the editor for a crate.");
+        sender.sendMessage("§e/gacha givekey <player> <crate> [amount] §7- Gives a player a crate key.");
+        sender.sendMessage("§e/gacha view <crate> §7- Shows the possible rewards in a crate.");
+        sender.sendMessage("§e/gacha stats [player] §7- Shows crate opening stats.");
+    }
+
+    private void handleCreateCommand(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("gacha.admin.create")) {
+            sender.sendMessage("§cYou do not have permission to use this command.");
+            return;
+        }
+        if (args.length < 2) {
+            sender.sendMessage("§cUsage: /gacha create <name>");
+            return;
+        }
+        String crateName = args[1];
+        if (plugin.getCrateManager().getCrate(crateName) != null) {
+            sender.sendMessage("§cError: A crate with the name '" + crateName + "' already exists.");
+            return;
+        }
+        plugin.getCrateManager().createCrate(crateName);
+        sender.sendMessage("§aSuccess! Crate '" + crateName + "' has been created.");
+    }
+
+    private void handleDeleteCommand(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("gacha.admin.delete")) {
+            sender.sendMessage("§cYou do not have permission to use this command.");
+            return;
+        }
+        if (args.length < 2) {
+            sender.sendMessage("§cUsage: /gacha delete <name>");
+            return;
+        }
+        String crateName = args[1];
+        if (plugin.getCrateManager().getCrate(crateName) == null) {
+            sender.sendMessage("§cError: Crate '" + crateName + "' not found.");
+            return;
+        }
+        plugin.getCrateManager().deleteCrate(crateName);
+        sender.sendMessage("§aSuccess! Crate '" + crateName + "' has been permanently deleted.");
+    }
+
+    private void handleAddItemCommand(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("§cThis command can only be run by a player.");
+            return;
+        }
+        Player player = (Player) sender;
+        if (!player.hasPermission("gacha.admin.additem")) {
+            player.sendMessage("§cYou do not have permission to use this command.");
+            return;
+        }
+        if (args.length < 4) {
+            player.sendMessage("§cUsage: /gacha additem <crateName> <rarity> <chance>");
+            return;
+        }
+        ItemStack itemInHand = player.getInventory().getItemInMainHand();
+        if (itemInHand.getType() == Material.AIR) {
+            player.sendMessage("§cYou must be holding an item to add it to a crate.");
+            return;
+        }
+        String crateName = args[1];
+        Crate crate = plugin.getCrateManager().getCrate(crateName);
+        if (crate == null) {
+            player.sendMessage("§cError: Crate '" + crateName + "' not found.");
+            return;
+        }
+        Rarity rarity = plugin.getRarityManager().getRarity(args[2]);
+        if (rarity == null) {
+            player.sendMessage("§cError: Invalid rarity. Available rarities: " + plugin.getRarityManager().getRarityIds());
+            return;
+        }
+        double chance;
+        try {
+            chance = Double.parseDouble(args[3]);
+            if (chance <= 0) {
+                player.sendMessage("§cError: Chance must be a positive number.");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            player.sendMessage("§cError: Invalid chance. Please use a number (e.g., 25.5).");
+            return;
+        }
+        Reward reward = new Reward(itemInHand.clone(), rarity, chance);
+        crate.addReward(reward);
+        plugin.getCrateManager().saveCrates();
+        player.sendMessage("§aSuccess! Added " + itemInHand.getType().name() + " to the '" + crateName + "' crate.");
+    }
+
+    private void handleEditCommand(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("§cThis command can only be run by a player.");
+            return;
+        }
+        Player player = (Player) sender;
+        if (!player.hasPermission("gacha.admin.edit")) {
+            player.sendMessage("§cYou do not have permission to use this command.");
+            return;
+        }
+        if (args.length < 2) {
+            player.sendMessage("§cUsage: /gacha edit <crateName>");
+            return;
+        }
+        String crateName = args[1];
+        Crate crate = plugin.getCrateManager().getCrate(crateName);
+        if (crate == null) {
+            player.sendMessage("§cError: Crate '" + crateName + "' not found.");
+            return;
+        }
+        new CrateEditorMenu(player, crate).open();
+    }
+    
+    private void handleGiveKeyCommand(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("gacha.admin.givekey")) {
+            sender.sendMessage("§cYou do not have permission to use this command.");
+            return;
+        }
+        if (args.length < 3) {
+            sender.sendMessage("§cUsage: /gacha givekey <player> <crate> [amount]");
+            return;
+        }
+        Player target = Bukkit.getPlayer(args[1]);
+        if (target == null) {
+            sender.sendMessage("§cError: Player '" + args[1] + "' is not online.");
+            return;
+        }
+        String crateName = args[2];
+        Crate crate = plugin.getCrateManager().getCrate(crateName);
+        if (crate == null) {
+            sender.sendMessage("§cError: Crate '" + crateName + "' not found.");
+            return;
+        }
+        int amount = 1;
+        if (args.length > 3) {
+            try {
+                amount = Integer.parseInt(args[3]);
+                if (amount <= 0) {
+                    sender.sendMessage("§cError: Amount must be a positive number.");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                sender.sendMessage("§cError: Invalid amount. Please use a whole number.");
+                return;
+            }
+        }
+        ItemStack key = plugin.getKeyManager().createKey(crate.getName(), amount);
+        target.getInventory().addItem(key);
+        sender.sendMessage("§aSuccess! Gave " + target.getName() + " " + amount + "x " + crate.getName() + " key(s).");
+        target.sendMessage("§aYou have received " + amount + "x " + crate.getName() + " key(s).");
+    }
+
+    private void handleViewCommand(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("§cThis command can only be run by a player.");
+            return;
+        }
+        Player player = (Player) sender;
+        if (!player.hasPermission("gacha.user.view")) {
+            player.sendMessage("§cYou do not have permission to view crates.");
+            return;
+        }
+        if (args.length < 2) {
+            player.sendMessage("§cUsage: /gacha view <crateName>");
+            return;
+        }
+        String crateName = args[1];
+        Crate crate = plugin.getCrateManager().getCrate(crateName);
+        if (crate == null) {
+            player.sendMessage("§cError: Crate '" + crateName + "' not found.");
+            return;
+        }
+        new CratePreviewMenu(player, crate).open();
+    }
+
+    private void handleStatsCommand(CommandSender sender, String[] args) {
+        Player target;
+        if (args.length > 1) {
+            if (!sender.hasPermission("gacha.admin.stats.other")) {
+                sender.sendMessage("§cYou don't have permission to view other players' stats.");
+                return;
+            }
+            target = Bukkit.getPlayer(args[1]);
+            if (target == null) {
+                sender.sendMessage("§cPlayer '" + args[1] + "' not found.");
+                return;
+            }
+        } else {
+            if (!(sender instanceof Player)) {
+                sender.sendMessage("§cPlease specify a player to view stats.");
+                return;
+            }
+            if (!sender.hasPermission("gacha.user.stats.self")) {
+                sender.sendMessage("§cYou don't have permission to view your stats.");
+                return;
+            }
+            target = (Player) sender;
+        }
+
+        PlayerData data = plugin.getPlayerManager().getPlayerData(target.getUniqueId());
+        if (data == null) {
+            sender.sendMessage("§cCould not load data for that player.");
+            return;
+        }
+
+        sender.sendMessage("§a§l--- Crate Stats for " + target.getName() + " ---");
+        if (data.getCratesOpenedMap().isEmpty()) {
+            sender.sendMessage("§7No crates opened yet.");
+        } else {
+            data.getCratesOpenedMap().forEach((crateName, count) -> {
+                sender.sendMessage("§e" + crateName + ": §f" + count + " opened");
+            });
+        }
+    }
+  }
+            
