@@ -5,6 +5,7 @@
 package com.kazumiii.gachacrate.guis;
 
 import com.kazumiii.gachacrate.animations.AnimationSelectorMenu;
+import com.kazumiii.gachacrate.animations.IdleParticleMenu;
 import com.kazumiii.gachacrate.crates.Crate;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -69,17 +70,24 @@ public class CrateSettingsMenu extends Menu {
         openMeta.setLore(Arrays.asList(ChatColor.GRAY + "Choose how players open this crate."));
         openingModeButton.setItemMeta(openMeta);
 
+        ItemStack particleButton = new ItemStack(Material.GLOWSTONE_DUST);
+        ItemMeta particleMeta = particleButton.getItemMeta();
+        particleMeta.setDisplayName(ChatColor.GOLD + "Idle Particle Effects");
+        particleMeta.setLore(Arrays.asList(ChatColor.GRAY + "Set a constant particle effect", ChatColor.GRAY + "to display on this crate block."));
+        particleButton.setItemMeta(particleMeta);
+
         ItemStack backButton = new ItemStack(Material.ARROW);
         ItemMeta backMeta = backButton.getItemMeta();
         backMeta.setDisplayName(ChatColor.YELLOW + "« Back to Crate List");
         backButton.setItemMeta(backMeta);
 
         inventory.setItem(10, viewRewards);
-        inventory.setItem(12, pitySettings);
-        inventory.setItem(14, timeLimitSettings);
-        inventory.setItem(16, animationSettings);
-        inventory.setItem(22, openingModeButton); // Centered on the bottom row
-        inventory.setItem(27, backButton); // Bottom-left corner
+        inventory.setItem(11, pitySettings);
+        inventory.setItem(12, timeLimitSettings);
+        inventory.setItem(14, animationSettings);
+        inventory.setItem(15, openingModeButton);
+        inventory.setItem(16, particleButton);
+        inventory.setItem(27, backButton);
 
         player.openInventory(inventory);
     }
@@ -105,6 +113,9 @@ public class CrateSettingsMenu extends Menu {
             case ENDER_EYE:
                 new OpeningModeMenu(player, crate).open();
                 break;
+            case GLOWSTONE_DUST:
+                new IdleParticleMenu(player, crate).open();
+                break;
             case ARROW:
                 new MainMenu(player).open();
                 break;
@@ -112,4 +123,4 @@ public class CrateSettingsMenu extends Menu {
                 break;
         }
     }
-    }
+}
