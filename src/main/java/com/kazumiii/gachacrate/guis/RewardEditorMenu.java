@@ -112,7 +112,6 @@ public class RewardEditorMenu extends Menu {
                 break;
             case EXPERIENCE_BOTTLE:
                 player.closeInventory();
-                // This now correctly passes the parent menu 'this' to the constructor
                 Conversation chanceConvo = cf.withFirstPrompt(new ChancePrompt(crate, reward, this)).withLocalEcho(false).buildConversation(player);
                 chanceConvo.begin();
                 break;
