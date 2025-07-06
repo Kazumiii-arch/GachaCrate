@@ -163,4 +163,4 @@ public class CrateOpener {
         fwm.addEffect(FireworkEffect.builder().withColor(Color.ORANGE, Color.YELLOW).flicker(true).with(FireworkEffect.Type.BALL_LARGE).build());
         fw.setFireworkMeta(fwm);
     }
-            }
+                }
