@@ -1,7 +1,3 @@
-// ========================================================================
-// File: LoreEditPrompt.java
-// Location: /src/main/java/com/kazumiii/gachacrate/conversation/LoreEditPrompt.java
-// ========================================================================
 package com.kazumiii.gachacrate.conversation;
 
 import com.kazumiii.gachacrate.GachaCrate;
