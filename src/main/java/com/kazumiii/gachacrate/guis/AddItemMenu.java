@@ -62,9 +62,12 @@ public class AddItemMenu extends Menu {
         infoMeta.setLore(Arrays.asList(ChatColor.GRAY + "Place the item you want to add", ChatColor.GRAY + "from your inventory into the empty slot."));
         info.setItemMeta(infoMeta);
         inventory.setItem(13, info);
-        // Only clear the slot if it's not already holding the user's item
-        if (inventory.getItem(22) == null) {
-            inventory.setItem(22, null);
+
+        // Preserve the item the user has placed, while clearing the slot if it's empty.
+        ItemStack userItem = inventory.getItem(22);
+        inventory.setItem(22, null); // Clear the slot first
+        if (userItem != null) {
+            inventory.setItem(22, userItem); // Then put it back if it exists
         }
 
         // --- Control Buttons ---
@@ -145,4 +148,4 @@ public class AddItemMenu extends Menu {
                 break;
         }
     }
-                                                           }
+}
