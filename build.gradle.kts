@@ -25,10 +25,9 @@ dependencies {
     // Spigot API for Minecraft 1.20.1.
     compileOnly("org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT")
 
-    // DecentHolograms API.
-    // 'compileOnlyApi' means it's needed for compiling and is an optional dependency.
-    // The plugin will work without it, but enable hologram features if it's present.
-    compileOnlyApi("com.github.decentsoftware-eu:decentholograms:2.8.6")
+    // --- THIS IS THE FIX ---
+    // DecentHolograms API. 'compileOnly' is the correct configuration for an optional dependency.
+    compileOnly("com.github.decentsoftware-eu:decentholograms:2.8.6")
 }
 
 java {
