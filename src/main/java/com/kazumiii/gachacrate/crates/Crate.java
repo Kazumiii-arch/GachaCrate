@@ -23,6 +23,7 @@ public class Crate {
     private LocalDate startDate;
     private LocalDate endDate;
     private AnimationType animationType;
+    private OpeningMode openingMode;
 
     public Crate(String name) {
         this.name = name;
@@ -31,6 +32,7 @@ public class Crate {
         this.pityEnabled = false;
         this.timeLimitEnabled = false;
         this.animationType = AnimationType.REEL; // Default animation
+        this.openingMode = OpeningMode.PHYSICAL_BLOCKS; // Default opening mode
     }
     
     // --- Getters ---
@@ -43,6 +45,7 @@ public class Crate {
     public LocalDate getStartDate() { return startDate; }
     public LocalDate getEndDate() { return endDate; }
     public AnimationType getAnimationType() { return animationType; }
+    public OpeningMode getOpeningMode() { return openingMode; }
 
     // --- Setters ---
     public void setPityEnabled(boolean pityEnabled) { this.pityEnabled = pityEnabled; }
@@ -52,6 +55,7 @@ public class Crate {
     public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
     public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
     public void setAnimationType(AnimationType animationType) { this.animationType = animationType; }
+    public void setOpeningMode(OpeningMode openingMode) { this.openingMode = openingMode; }
 
     // --- Logic Methods ---
     public void addReward(Reward reward) { this.rewards.add(reward); }
