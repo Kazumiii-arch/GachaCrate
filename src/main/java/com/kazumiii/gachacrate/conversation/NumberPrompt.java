@@ -1,7 +1,3 @@
-// ========================================================================
-// File: NumberPrompt.java
-// Location: /src/main/java/com/kazumiii/gachacrate/conversation/NumberPrompt.java
-// ========================================================================
 package com.kazumiii.gachacrate.conversation;
 
 import com.kazumiii.gachacrate.GachaCrate;
@@ -18,12 +14,7 @@ public class NumberPrompt extends StringPrompt {
     private final Crate crate;
     private final Menu parentMenu;
 
-    /**
-     * A reusable prompt for getting any integer value from a player.
-     * @param setting A key to identify what is being changed (e.g., "pity-threshold").
-     * @param crate The crate being modified.
-     * @param parentMenu The menu to re-open after the conversation is complete.
-     */
+
     public NumberPrompt(String setting, Crate crate, Menu parentMenu) {
         this.setting = setting;
         this.crate = crate;
