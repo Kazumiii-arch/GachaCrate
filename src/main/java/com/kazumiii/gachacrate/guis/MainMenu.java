@@ -59,18 +59,26 @@ public class MainMenu extends Menu {
             lore.add("");
             lore.add(ChatColor.YELLOW + "► Click to manage this crate.");
             crateMeta.setLore(lore);
-            crateItem.setItemMeta(crateMeta);
+            crateItem.setItemMeta(crateItem);
             inventory.setItem(slot, crateItem);
             slot++;
         }
 
-        // --- Control Button ---
+        // --- Control Buttons ---
         ItemStack createItem = new ItemStack(Material.NETHER_STAR);
         ItemMeta createMeta = createItem.getItemMeta();
         createMeta.setDisplayName(ChatColor.GREEN + "✚ Create New Crate");
         createMeta.setLore(Collections.singletonList(ChatColor.GRAY + "Click to create a new crate."));
         createItem.setItemMeta(createMeta);
-        inventory.setItem(49, createItem); // Center bottom slot
+        
+        ItemStack settingsButton = new ItemStack(Material.COMPARATOR);
+        ItemMeta settingsMeta = settingsButton.getItemMeta();
+        settingsMeta.setDisplayName(ChatColor.GOLD + "Plugin Settings");
+        settingsMeta.setLore(Collections.singletonList(ChatColor.GRAY + "Edit global plugin settings."));
+        settingsButton.setItemMeta(settingsMeta);
+
+        inventory.setItem(48, settingsButton);
+        inventory.setItem(50, createItem);
 
         player.openInventory(inventory);
     }
@@ -96,6 +104,9 @@ public class MainMenu extends Menu {
                 // Open the settings menu for the selected crate
                 new CrateSettingsMenu(player, crate).open();
             }
+        } else if (clickedItem.getType() == Material.COMPARATOR) {
+            // This would open a future PluginSettingsMenu
+            player.sendMessage(ChatColor.YELLOW + "Global plugin settings coming soon!");
         }
     }
 }
