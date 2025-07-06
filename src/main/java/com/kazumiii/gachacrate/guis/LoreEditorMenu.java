@@ -40,8 +40,13 @@ public class LoreEditorMenu extends Menu {
         player.openInventory(inventory);
     }
 
+    /**
+     * Refreshes the items in the GUI, especially the item being edited.
+     */
     private void updateItems() {
-        // Display the item being edited
+        inventory.clear(); // Clear the menu before redrawing to reflect changes
+
+        // Display the item being edited in the center
         ItemStack displayItem = reward.getItem().clone();
         inventory.setItem(4, displayItem);
 
@@ -99,7 +104,7 @@ public class LoreEditorMenu extends Menu {
                     rewardItem.setItemMeta(meta);
                     GachaCrate.getInstance().getCrateManager().saveCrates();
                     player.sendMessage(ChatColor.GREEN + "Last line of lore removed.");
-                    updateItems();
+                    updateItems(); // Refresh the GUI to show the change
                 } else {
                     player.sendMessage(ChatColor.RED + "This item has no lore to remove.");
                 }
@@ -110,7 +115,7 @@ public class LoreEditorMenu extends Menu {
                     rewardItem.setItemMeta(meta);
                     GachaCrate.getInstance().getCrateManager().saveCrates();
                     player.sendMessage(ChatColor.GREEN + "All lore has been cleared from the item.");
-                    updateItems();
+                    updateItems(); // Refresh the GUI
                 } else {
                     player.sendMessage(ChatColor.RED + "This item has no lore to clear.");
                 }
