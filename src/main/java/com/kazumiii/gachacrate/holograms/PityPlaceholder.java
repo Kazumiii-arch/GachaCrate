@@ -40,15 +40,16 @@ public class PityPlaceholder extends PlaceholderExpansion {
     @Override
     public String onRequest(Player player, Hologram hologram, String placeholder) {
         if (player == null) {
-            return "";
+            return ""; // Cannot get pity for a non-player
         }
 
+        // The placeholder will be in the format %gachacrate_pity_text_CrateName%
         if (placeholder.startsWith("pity_text_")) {
             String crateName = placeholder.substring("pity_text_".length());
             Crate crate = plugin.getCrateManager().getCrate(crateName);
 
             if (crate == null || !crate.isPityEnabled()) {
-                return "";
+                return ""; // Don't show anything if the crate doesn't exist or has no pity system
             }
 
             PlayerData playerData = plugin.getPlayerManager().getPlayerData(player.getUniqueId());
@@ -63,6 +64,6 @@ public class PityPlaceholder extends PlaceholderExpansion {
             return ChatColor.LIGHT_PURPLE + "Pity: " + ChatColor.WHITE + currentPity + " / " + maxPity + " for " + rarityName;
         }
 
-        return null;
+        return null; // Return null for unknown placeholders
     }
 }
