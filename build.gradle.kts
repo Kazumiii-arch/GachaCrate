@@ -11,19 +11,24 @@ plugins {
 
 // Project metadata
 group = "com.kazumiii"
-version = "1.2.0" // Reflects the version with the latest advanced features
+version = "1.3.1" // Version reflects the switch to DecentHolograms
 
 repositories {
     mavenCentral()
     // The repository needed to download the Spigot API
     maven { url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/") }
+    // The repository needed to download the DecentHolograms API
+    maven { url = uri("https://jitpack.io") }
 }
 
 dependencies {
     // Spigot API for Minecraft 1.20.1.
-    // 'compileOnly' means it's needed for compiling but won't be included in the
-    // final JAR, as the server provides it at runtime.
     compileOnly("org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT")
+
+    // DecentHolograms API.
+    // 'compileOnlyApi' means it's needed for compiling and is an optional dependency.
+    // The plugin will work without it, but enable hologram features if it's present.
+    compileOnlyApi("com.github.decentsoftware-eu:decentholograms:2.8.6")
 }
 
 java {
@@ -40,7 +45,6 @@ tasks {
     }
 
     // Make the main 'build' task dependent on the 'shadowJar' task.
-    // This ensures that running 'gradle build' will create the final JAR.
     build {
         dependsOn(shadowJar)
     }
