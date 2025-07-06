@@ -1,6 +1,6 @@
 // ========================================================================
-// File: DatePrompt.java
-// Location: /src/main/java/com/kazumiii/gachacrate/conversation/DatePrompt.java
+// File: NumberPrompt.java
+// Location: /src/main/java/com/kazumiii/gachacrate/conversation/NumberPrompt.java
 // ========================================================================
 package com.kazumiii.gachacrate.conversation;
 
@@ -12,22 +12,19 @@ import org.bukkit.conversations.Prompt;
 import org.bukkit.conversations.StringPrompt;
 import org.bukkit.entity.Player;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
-
-public class DatePrompt extends StringPrompt {
+public class NumberPrompt extends StringPrompt {
 
     private final String setting;
     private final Crate crate;
     private final Menu parentMenu;
 
     /**
-     * A reusable prompt for getting a date value from a player.
-     * @param setting A key to identify what is being changed (e.g., "start-date").
+     * A reusable prompt for getting any integer value from a player.
+     * @param setting A key to identify what is being changed (e.g., "pity-threshold").
      * @param crate The crate being modified.
      * @param parentMenu The menu to re-open after the conversation is complete.
      */
-    public DatePrompt(String setting, Crate crate, Menu parentMenu) {
+    public NumberPrompt(String setting, Crate crate, Menu parentMenu) {
         this.setting = setting;
         this.crate = crate;
         this.parentMenu = parentMenu;
@@ -35,7 +32,7 @@ public class DatePrompt extends StringPrompt {
 
     @Override
     public String getPromptText(ConversationContext context) {
-        return "§eEnter the date for §f" + setting + "§e (YYYY-MM-DD), or type 'cancel'.";
+        return "§ePlease type the new value for §f" + setting + "§e in chat, or type 'cancel'.";
     }
 
     @Override
@@ -48,19 +45,23 @@ public class DatePrompt extends StringPrompt {
         }
 
         try {
-            LocalDate date = LocalDate.parse(input);
-            if ("start-date".equals(setting)) {
-                crate.setStartDate(date);
-            } else if ("end-date".equals(setting)) {
-                crate.setEndDate(date);
+            int value = Integer.parseInt(input);
+            if (value <= 0) {
+                player.sendMessage("§cValue must be a positive number. Please try again.");
+                return this;
             }
 
+            if ("pity-threshold".equals(setting)) {
+                crate.setPityThreshold(value);
+            }
+            // This can be expanded with else-if for other future integer settings.
+            
             GachaCrate.getInstance().getCrateManager().saveCrates();
-            player.sendMessage("§aDate updated successfully!");
+            player.sendMessage("§aSetting updated successfully!");
             parentMenu.open(); // Re-open the previous menu
             return END_OF_CONVERSATION;
-        } catch (DateTimeParseException e) {
-            player.sendMessage("§cInvalid date format! Use YYYY-MM-DD. Please try again.");
+        } catch (NumberFormatException e) {
+            player.sendMessage("§cInvalid number. Please try again.");
             return this;
         }
     }
