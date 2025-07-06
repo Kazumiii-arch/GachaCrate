@@ -37,12 +37,10 @@ public class RewardEditorMenu extends Menu {
     public void open() {
         inventory = Bukkit.createInventory(this, 27, "Edit Reward");
 
-        // Display the item being edited
         ItemStack displayItem;
         if (reward.getType() == RewardType.ITEM) {
             displayItem = reward.getItem().clone();
         } else {
-            // If a preview item is set, use it. Otherwise, use a command block.
             if (reward.getPreviewItem() != null) {
                 displayItem = reward.getPreviewItem().clone();
             } else {
@@ -53,7 +51,6 @@ public class RewardEditorMenu extends Menu {
         displayMeta.setDisplayName(ChatColor.YELLOW + "Editing Reward");
         displayItem.setItemMeta(displayMeta);
 
-        // Button to change rarity
         ItemStack rarityButton = new ItemStack(Material.NAME_TAG);
         ItemMeta rarityMeta = rarityButton.getItemMeta();
         rarityMeta.setDisplayName(ChatColor.AQUA + "Change Rarity");
@@ -64,7 +61,6 @@ public class RewardEditorMenu extends Menu {
         ));
         rarityButton.setItemMeta(rarityMeta);
 
-        // Button to change chance
         ItemStack chanceButton = new ItemStack(Material.EXPERIENCE_BOTTLE);
         ItemMeta chanceMeta = chanceButton.getItemMeta();
         chanceMeta.setDisplayName(ChatColor.GREEN + "Change Chance");
@@ -75,7 +71,6 @@ public class RewardEditorMenu extends Menu {
         ));
         chanceButton.setItemMeta(chanceMeta);
         
-        // Back button
         ItemStack backButton = new ItemStack(Material.BARRIER);
         ItemMeta backMeta = backButton.getItemMeta();
         backMeta.setDisplayName(ChatColor.RED + "« Back to Reward List");
@@ -86,7 +81,6 @@ public class RewardEditorMenu extends Menu {
         inventory.setItem(14, chanceButton);
         inventory.setItem(18, backButton);
 
-        // --- ADD NEW BUTTON FOR COMMAND REWARDS ---
         if (reward.getType() == RewardType.COMMAND) {
             ItemStack previewButton = new ItemStack(Material.ITEM_FRAME);
             ItemMeta previewMeta = previewButton.getItemMeta();
@@ -98,7 +92,7 @@ public class RewardEditorMenu extends Menu {
                     ChatColor.YELLOW + "► Click to change."
             ));
             previewButton.setItemMeta(previewMeta);
-            inventory.setItem(16, previewButton); // Place next to chance button
+            inventory.setItem(16, previewButton);
         }
     }
 
@@ -113,16 +107,17 @@ public class RewardEditorMenu extends Menu {
         switch (clicked.getType()) {
             case NAME_TAG:
                 player.closeInventory();
-                Conversation rarityConvo = cf.withFirstPrompt(new RarityPrompt(crate, reward)).withLocalEcho(false).buildConversation(player);
+                // We pass 'this' as the parentMenu to be re-opened on completion/cancellation.
+                Conversation rarityConvo = cf.withFirstPrompt(new RarityPrompt(crate, reward, this)).withLocalEcho(false).buildConversation(player);
                 rarityConvo.begin();
                 break;
             case EXPERIENCE_BOTTLE:
                 player.closeInventory();
-                Conversation chanceConvo = cf.withFirstPrompt(new ChancePrompt(crate, reward)).withLocalEcho(false).buildConversation(player);
+                // Pass 'this' as the parentMenu here as well.
+                Conversation chanceConvo = cf.withFirstPrompt(new ChancePrompt(crate, reward, this)).withLocalEcho(false).buildConversation(player);
                 chanceConvo.begin();
                 break;
             case ITEM_FRAME:
-                // This button only appears for command rewards
                 new SetPreviewItemMenu(player, crate, reward).open();
                 break;
             case BARRIER:
