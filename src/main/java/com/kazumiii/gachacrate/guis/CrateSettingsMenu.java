@@ -4,6 +4,7 @@
 // ========================================================================
 package com.kazumiii.gachacrate.guis;
 
+import com.kazumiii.gachacrate.animations.AnimationSelectorMenu;
 import com.kazumiii.gachacrate.crates.Crate;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -56,14 +57,21 @@ public class CrateSettingsMenu extends Menu {
         timeMeta.setLore(Arrays.asList(ChatColor.GRAY + "Set a start and end date", ChatColor.GRAY + "for when this crate can be opened."));
         timeLimitSettings.setItemMeta(timeMeta);
 
+        ItemStack animationSettings = new ItemStack(Material.JUKEBOX);
+        ItemMeta animMeta = animationSettings.getItemMeta();
+        animMeta.setDisplayName(ChatColor.GREEN + "Animation Settings");
+        animMeta.setLore(Arrays.asList(ChatColor.GRAY + "Change the visual animation", ChatColor.GRAY + "for opening this crate."));
+        animationSettings.setItemMeta(animMeta);
+
         ItemStack backButton = new ItemStack(Material.ARROW);
         ItemMeta backMeta = backButton.getItemMeta();
         backMeta.setDisplayName(ChatColor.YELLOW + "« Back to Crate List");
         backButton.setItemMeta(backMeta);
 
-        inventory.setItem(11, viewRewards);
-        inventory.setItem(13, pitySettings);
-        inventory.setItem(15, timeLimitSettings);
+        inventory.setItem(10, viewRewards);
+        inventory.setItem(12, pitySettings);
+        inventory.setItem(14, timeLimitSettings);
+        inventory.setItem(16, animationSettings);
         inventory.setItem(18, backButton);
 
         player.openInventory(inventory);
@@ -83,6 +91,9 @@ public class CrateSettingsMenu extends Menu {
                 break;
             case CLOCK:
                 new TimeLimitEditorMenu(player, crate).open();
+                break;
+            case JUKEBOX:
+                new AnimationSelectorMenu(player, crate).open();
                 break;
             case ARROW:
                 new MainMenu(player).open();
