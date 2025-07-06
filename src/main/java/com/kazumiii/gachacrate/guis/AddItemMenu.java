@@ -17,7 +17,6 @@ import org.bukkit.conversations.Conversation;
 import org.bukkit.conversations.ConversationFactory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -26,23 +25,29 @@ import java.util.Arrays;
 public class AddItemMenu extends Menu {
 
     private final Crate crate;
-    // Temporary storage for the reward being built
-    private Rarity tempRarity;
-    private double tempChance;
+    // We create a temporary reward object to hold the settings as we build it.
+    private final Reward tempReward;
 
     public AddItemMenu(Player player, Crate crate) {
         super(player);
         this.crate = crate;
-        // Set default values
-        this.tempRarity = GachaCrate.getInstance().getRarityManager().getRarity("COMMON");
-        this.tempChance = 100.0;
+        // Create a dummy reward to be configured. The item will be added later.
+        // We initialize it with default values.
+        this.tempReward = new Reward(new ItemStack(Material.AIR), GachaCrate.getInstance().getRarityManager().getRarity("COMMON"), 100.0);
     }
 
     @Override
     public void open() {
         inventory = Bukkit.createInventory(this, 45, "Add New Item Reward");
-        
-        // Instructions and placeholder
+        updateItems();
+        player.openInventory(inventory);
+    }
+
+    /**
+     * Refreshes the items in the GUI, especially the buttons with dynamic lore.
+     */
+    private void updateItems() {
+        // --- Instructions and Placeholder ---
         ItemStack placeholder = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta meta = placeholder.getItemMeta();
         meta.setDisplayName(" ");
@@ -57,36 +62,29 @@ public class AddItemMenu extends Menu {
         infoMeta.setLore(Arrays.asList(ChatColor.GRAY + "Place the item you want to add", ChatColor.GRAY + "from your inventory into the empty slot."));
         info.setItemMeta(infoMeta);
         inventory.setItem(13, info);
-        inventory.setItem(22, null); // The empty slot for the item
+        // Only clear the slot if it's not already holding the user's item
+        if (inventory.getItem(22) == null) {
+            inventory.setItem(22, null);
+        }
 
-        // Control buttons
-        updateButtons();
-        
-        player.openInventory(inventory);
-    }
-
-    private void updateButtons() {
-        // Rarity Button
+        // --- Control Buttons ---
         ItemStack rarityButton = new ItemStack(Material.NAME_TAG);
         ItemMeta rarityMeta = rarityButton.getItemMeta();
         rarityMeta.setDisplayName(ChatColor.AQUA + "Set Rarity");
-        rarityMeta.setLore(Arrays.asList(ChatColor.GRAY + "Current: " + tempRarity.getDisplayName(), ChatColor.YELLOW + "► Click to change."));
+        rarityMeta.setLore(Arrays.asList(ChatColor.GRAY + "Current: " + tempReward.getRarity().getDisplayName(), ChatColor.YELLOW + "► Click to change."));
         rarityButton.setItemMeta(rarityMeta);
 
-        // Chance Button
         ItemStack chanceButton = new ItemStack(Material.EXPERIENCE_BOTTLE);
         ItemMeta chanceMeta = chanceButton.getItemMeta();
         chanceMeta.setDisplayName(ChatColor.GREEN + "Set Chance");
-        chanceMeta.setLore(Arrays.asList(ChatColor.GRAY + "Current: " + tempChance + "%", ChatColor.YELLOW + "► Click to change."));
+        chanceMeta.setLore(Arrays.asList(ChatColor.GRAY + "Current: " + tempReward.getChance() + "%", ChatColor.YELLOW + "► Click to change."));
         chanceButton.setItemMeta(chanceMeta);
 
-        // Confirm Button
         ItemStack confirmButton = new ItemStack(Material.LIME_STAINED_GLASS_PANE);
         ItemMeta confirmMeta = confirmButton.getItemMeta();
         confirmMeta.setDisplayName(ChatColor.GREEN + "" + ChatColor.BOLD + "CONFIRM & ADD REWARD");
         confirmButton.setItemMeta(confirmMeta);
 
-        // Cancel Button
         ItemStack cancelButton = new ItemStack(Material.RED_STAINED_GLASS_PANE);
         ItemMeta cancelMeta = cancelButton.getItemMeta();
         cancelMeta.setDisplayName(ChatColor.RED + "« Cancel");
@@ -100,7 +98,7 @@ public class AddItemMenu extends Menu {
 
     @Override
     public void handleMenu(InventoryClickEvent event) {
-        // Allow player to place an item in the designated slot
+        // Allow the player to place/take an item in the designated slot (22)
         if (event.getSlot() == 22 || event.getClickedInventory() == player.getInventory()) {
             return;
         }
@@ -109,12 +107,18 @@ public class AddItemMenu extends Menu {
         ItemStack clicked = event.getCurrentItem();
         if (clicked == null || clicked.getType() == Material.AIR) return;
 
+        ConversationFactory cf = new ConversationFactory(GachaCrate.getInstance());
+
         switch (clicked.getType()) {
             case NAME_TAG:
-                // Logic to change rarity via chat prompt
+                player.closeInventory();
+                Conversation rarityConvo = cf.withFirstPrompt(new RarityPrompt(crate, tempReward, this)).withLocalEcho(false).buildConversation(player);
+                rarityConvo.begin();
                 break;
             case EXPERIENCE_BOTTLE:
-                // Logic to change chance via chat prompt
+                player.closeInventory();
+                Conversation chanceConvo = cf.withFirstPrompt(new ChancePrompt(crate, tempReward, this)).withLocalEcho(false).buildConversation(player);
+                chanceConvo.begin();
                 break;
             case LIME_STAINED_GLASS_PANE:
                 ItemStack rewardItem = inventory.getItem(22);
@@ -122,17 +126,23 @@ public class AddItemMenu extends Menu {
                     player.sendMessage(ChatColor.RED + "You must place an item in the slot first!");
                     return;
                 }
-                Reward newReward = new Reward(rewardItem.clone(), tempRarity, tempChance);
+                // Create the final reward with the item from the slot and the configured settings
+                Reward newReward = new Reward(rewardItem.clone(), tempReward.getRarity(), tempReward.getChance());
                 crate.addReward(newReward);
                 GachaCrate.getInstance().getCrateManager().saveCrates();
                 player.sendMessage(ChatColor.GREEN + "Successfully added new item reward!");
                 new CrateEditorMenu(player, crate).open();
                 break;
             case RED_STAINED_GLASS_PANE:
+                // Return the item to the player if they cancel
+                ItemStack itemToReturn = inventory.getItem(22);
+                if (itemToReturn != null && itemToReturn.getType() != Material.AIR) {
+                    player.getInventory().addItem(itemToReturn);
+                }
                 new RewardTypeSelectionMenu(player, crate).open();
                 break;
             default:
                 break;
         }
     }
-}
+                                                           }
