@@ -6,6 +6,7 @@ package com.kazumiii.gachacrate.listeners;
 
 import com.kazumiii.gachacrate.GachaCrate;
 import com.kazumiii.gachacrate.crates.Crate;
+import com.kazumiii.gachacrate.crates.OpeningMode;
 import com.kazumiii.gachacrate.guis.CrateAnimationMenu;
 import com.kazumiii.gachacrate.guis.CratePreviewMenu;
 import org.bukkit.ChatColor;
@@ -21,14 +22,18 @@ import java.time.LocalDate;
 
 public class CrateListener implements Listener {
 
-    private final GachaCrate plugin = GachaCrate.getInstance();
+    private final GachaCrate plugin;
+
+    public CrateListener(GachaCrate plugin) {
+        this.plugin = plugin;
+    }
 
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         Action action = event.getAction();
         
-        // --- PHYSICAL CRATE INTERACTION ---
+        // --- Handle Physical Block Interactions ---
         if (action == Action.LEFT_CLICK_BLOCK || action == Action.RIGHT_CLICK_BLOCK) {
             Block clickedBlock = event.getClickedBlock();
             if (clickedBlock != null && plugin.getPhysicalCrateManager().isCrateLocation(clickedBlock.getLocation())) {
@@ -37,25 +42,30 @@ public class CrateListener implements Listener {
                 Crate crate = plugin.getCrateManager().getCrate(crateName);
                 if (crate == null) return;
 
+                // Preview on left click, regardless of the crate's opening mode
                 if (action == Action.LEFT_CLICK_BLOCK) {
-                    // Open preview menu on left-click
                     new CratePreviewMenu(player, crate).open();
-                } else { // It's a right-click
-                    // Attempt to open the crate using the item in the player's hand
-                    openCrate(player, crate, player.getInventory().getItemInMainHand());
+                    return;
                 }
-                return; // Stop processing to avoid the fallback check
+                
+                // On right click, only proceed if the mode is set to PHYSICAL_BLOCKS
+                if (crate.getOpeningMode() == OpeningMode.PHYSICAL_BLOCKS) {
+                    openCrate(player, crate, player.getInventory().getItemInMainHand());
+                } else {
+                    player.sendMessage(ChatColor.RED + "This crate must be opened by right-clicking the key in your hand.");
+                }
+                return; // Stop processing to avoid double-triggering
             }
         }
 
-        // --- KEY IN HAND INTERACTION (fallback if not looking at a crate block) ---
+        // --- Handle Key-In-Hand Interactions ---
         if (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK) {
             ItemStack itemInHand = player.getInventory().getItemInMainHand();
             String crateName = plugin.getKeyManager().getCrateFromKey(itemInHand);
             if (crateName != null) {
-                event.setCancelled(true);
                 Crate crate = plugin.getCrateManager().getCrate(crateName);
-                if (crate != null) {
+                if (crate != null && crate.getOpeningMode() == OpeningMode.KEY_IN_HAND) {
+                    event.setCancelled(true);
                     openCrate(player, crate, itemInHand);
                 }
             }
@@ -63,20 +73,20 @@ public class CrateListener implements Listener {
     }
 
     /**
-     * Handles the logic for opening a crate after all initial checks.
+     * Handles the final logic for opening a crate after all initial checks.
      * @param player The player opening the crate.
      * @param crate The crate being opened.
      * @param key The item stack being used as a key.
      */
     private void openCrate(Player player, Crate crate, ItemStack key) {
-        // Verify that the item in hand is a key for THIS specific crate
         String keyCrateName = plugin.getKeyManager().getCrateFromKey(key);
         if (keyCrateName == null || !keyCrateName.equalsIgnoreCase(crate.getName())) {
-            player.sendMessage(ChatColor.RED + "You need a " + ChatColor.YELLOW + crate.getName() + " Key" + ChatColor.RED + " to open this!");
+            if (crate.getOpeningMode() == OpeningMode.PHYSICAL_BLOCKS) {
+                player.sendMessage(ChatColor.RED + "You need a " + ChatColor.YELLOW + crate.getName() + " Key" + ChatColor.RED + " to open this!");
+            }
             return;
         }
         
-        // Time Limit Check
         if (crate.isTimeLimitEnabled()) {
             LocalDate now = LocalDate.now();
             if (now.isBefore(crate.getStartDate()) || now.isAfter(crate.getEndDate())) {
@@ -85,14 +95,12 @@ public class CrateListener implements Listener {
             }
         }
 
-        // Permission Check
         String permission = "gacha.user.open." + crate.getName();
         if (!player.hasPermission(permission) && !player.hasPermission("gacha.user.open.*")) {
             player.sendMessage("§cYou don't have permission to open this crate.");
             return;
         }
 
-        // Consume one key and start the animation
         key.setAmount(key.getAmount() - 1);
         new CrateAnimationMenu(player, crate).open();
     }
