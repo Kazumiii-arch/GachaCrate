@@ -1,7 +1,3 @@
-// ========================================================================
-// File: DatePrompt.java
-// Location: /src/main/java/com/kazumiii/gachacrate/conversation/DatePrompt.java
-// ========================================================================
 package com.kazumiii.gachacrate.conversation;
 
 import com.kazumiii.gachacrate.GachaCrate;
@@ -20,13 +16,7 @@ public class DatePrompt extends StringPrompt {
     private final String setting;
     private final Crate crate;
     private final Menu parentMenu;
-
-    /**
-     * A reusable prompt for getting a date value from a player.
-     * @param setting A key to identify what is being changed (e.g., "start-date").
-     * @param crate The crate being modified.
-     * @param parentMenu The menu to re-open after the conversation is complete.
-     */
+    
     public DatePrompt(String setting, Crate crate, Menu parentMenu) {
         this.setting = setting;
         this.crate = crate;
