@@ -10,6 +10,7 @@ import eu.decentsoftware.holograms.api.DHAPI;
 import eu.decentsoftware.holograms.api.holograms.Hologram;
 import org.bukkit.Location;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -48,17 +49,22 @@ public class HologramManager {
         
         String hologramName = getHologramName(blockLocation);
         // Position the hologram nicely above the block
-        Location hologramLocation = blockLocation.clone().add(0.5, 2.0, 0.5);
+        Location hologramLocation = blockLocation.clone().add(0.5, 2.2, 0.5);
         
-        List<String> lines = Arrays.asList(
+        List<String> lines = new ArrayList<>(Arrays.asList(
             "&b&l" + crate.getName() + " Crate",
             "&eLeft-Click to Preview",
             "&aRight-Click with Key to Open"
-        );
+        ));
+
+        // If the crate has a pity system, add the dynamic placeholder line.
+        if (crate.isPityEnabled()) {
+            // The placeholder format is %<identifier>_<params>%
+            String placeholder = "%gachacrate_pity_text_" + crate.getName() + "%";
+            lines.add(placeholder);
+        }
 
         // Use the DecentHolograms API to create the hologram.
-        // The third argument (false) means it is not persistent through DecentHolograms' own config,
-        // as we are managing persistence ourselves in locations.yml.
         DHAPI.createHologram(hologramName, hologramLocation, false, lines);
     }
 
