@@ -12,6 +12,7 @@ import com.kazumiii.gachacrate.crates.PhysicalCrateManager;
 import com.kazumiii.gachacrate.crates.RarityManager;
 import com.kazumiii.gachacrate.guis.MenuListener;
 import com.kazumiii.gachacrate.holograms.HologramManager;
+import com.kazumiii.gachacrate.holograms.PityPlaceholder;
 import com.kazumiii.gachacrate.items.KeyManager;
 import com.kazumiii.gachacrate.listeners.CrateListener;
 import com.kazumiii.gachacrate.listeners.PlayerJoinListener;
@@ -51,11 +52,17 @@ public final class GachaCrate extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new CrateListener(this), this);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
         
+        // Register custom placeholder with DecentHolograms if it exists
+        if (getServer().getPluginManager().getPlugin("DecentHolograms") != null) {
+            new PityPlaceholder(this).register();
+            getLogger().info("Registered Pity Hologram Placeholder.");
+        }
+        
         // Load data for any players already online (e.g., on a /reload)
         getServer().getOnlinePlayers().forEach(player -> playerManager.loadPlayerData(player));
 
-        // Start the idle particle effect task
-        new IdleParticleTask(this).runTaskTimerAsynchronously(this, 0L, 2L); // Run every 2 ticks for smooth animation
+        // Start the idle particle effect task asynchronously for performance
+        new IdleParticleTask(this).runTaskTimerAsynchronously(this, 0L, 2L);
 
         getLogger().info("========================================");
         getLogger().info("Kazumiii Gacha Crate has been enabled!");
