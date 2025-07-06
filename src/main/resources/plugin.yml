@@ -3,11 +3,14 @@
 # Location: /src/main/resources/plugin.yml
 # ========================================================================
 name: GachaCrate
-version: '1.2.0'
+version: '1.3.1'
 main: com.kazumiii.gachacrate.GachaCrate
 api-version: '1.20'
 author: Kazumiii
 description: A Minecraft Survival server gacha crate plugin with full in-game editing.
+# This tells the server to try and load DecentHolograms before our plugin.
+softdepend: [DecentHolograms]
+
 commands:
   gacha:
     description: Main command for the GachaCrate plugin.
@@ -25,9 +28,11 @@ permissions:
       - gacha.admin.create
       - gacha.admin.delete
       - gacha.admin.additem
+      - gacha.admin.addcmd
       - gacha.admin.edit
       - gacha.admin.givekey
       - gacha.admin.stats.other
+      - gacha.admin.setblock
   gacha.user:
     description: Grants access to all user-level commands and actions.
     children:
@@ -43,16 +48,22 @@ permissions:
     description: Allows deleting existing crates.
     default: op
   gacha.admin.additem:
-    description: Allows adding items to crates.
+    description: Allows use of the legacy additem command.
+    default: op
+  gacha.admin.addcmd:
+    description: Allows use of the legacy addcmd command.
     default: op
   gacha.admin.edit:
-    description: Allows editing crate rewards via GUI.
+    description: Allows full use of the /gacha GUI editor.
     default: op
   gacha.admin.givekey:
     description: Allows giving crate keys to players.
     default: op
   gacha.admin.stats.other:
     description: Allows viewing the stats of other players.
+    default: op
+  gacha.admin.setblock:
+    description: Allows setting and removing physical crate blocks.
     default: op
 
   # User Permissions
