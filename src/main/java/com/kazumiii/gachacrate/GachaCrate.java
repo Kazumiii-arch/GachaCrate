@@ -6,8 +6,10 @@ package com.kazumiii.gachacrate;
 
 import com.kazumiii.gachacrate.commands.GachaCommand;
 import com.kazumiii.gachacrate.crates.CrateManager;
+import com.kazumiii.gachacrate.crates.PhysicalCrateManager;
 import com.kazumiii.gachacrate.crates.RarityManager;
 import com.kazumiii.gachacrate.guis.MenuListener;
+import com.kazumiii.gachacrate.holograms.HologramManager;
 import com.kazumiii.gachacrate.items.KeyManager;
 import com.kazumiii.gachacrate.listeners.CrateListener;
 import com.kazumiii.gachacrate.listeners.PlayerJoinListener;
@@ -21,6 +23,8 @@ public final class GachaCrate extends JavaPlugin {
     private KeyManager keyManager;
     private RarityManager rarityManager;
     private PlayerManager playerManager;
+    private PhysicalCrateManager physicalCrateManager;
+    private HologramManager hologramManager;
 
     @Override
     public void onEnable() {
@@ -34,6 +38,9 @@ public final class GachaCrate extends JavaPlugin {
         crateManager = new CrateManager(this);
         keyManager = new KeyManager(this);
         playerManager = new PlayerManager(this);
+        hologramManager = new HologramManager(this); // Must be initialized before PhysicalCrateManager
+        physicalCrateManager = new PhysicalCrateManager(this);
+
 
         // Register commands and listeners
         getCommand("gacha").setExecutor(new GachaCommand(this));
@@ -60,10 +67,12 @@ public final class GachaCrate extends JavaPlugin {
         getLogger().info("Kazumiii Gacha Crate has been disabled.");
     }
 
-    // Getters for managers
+    // --- Getters for Managers ---
     public CrateManager getCrateManager() { return crateManager; }
     public KeyManager getKeyManager() { return keyManager; }
     public RarityManager getRarityManager() { return rarityManager; }
     public PlayerManager getPlayerManager() { return playerManager; }
+    public PhysicalCrateManager getPhysicalCrateManager() { return physicalCrateManager; }
+    public HologramManager getHologramManager() { return hologramManager; }
     public static GachaCrate getInstance() { return instance; }
 }
