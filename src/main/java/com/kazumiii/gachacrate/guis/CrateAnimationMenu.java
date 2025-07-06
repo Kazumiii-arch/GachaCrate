@@ -24,11 +24,13 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 public class CrateAnimationMenu extends Menu {
 
     private final Crate crate;
     private final List<ItemStack> animationReel = new ArrayList<>();
+    private final Random random = new Random();
 
     public CrateAnimationMenu(Player player, Crate crate) {
         super(player);
@@ -36,12 +38,8 @@ public class CrateAnimationMenu extends Menu {
         populateAnimationReel();
     }
 
-    /**
-     * Creates a weighted list of items to flash during the animation.
-     */
     private void populateAnimationReel() {
         if (crate.getRewards().isEmpty()) return;
-
         for (Reward reward : crate.getRewards()) {
             ItemStack displayItem;
             if (reward.getType() == RewardType.ITEM) {
@@ -59,9 +57,8 @@ public class CrateAnimationMenu extends Menu {
 
     @Override
     public void open() {
-        inventory = Bukkit.createInventory(this, 27, "§eOpening " + crate.getName() + "...");
+        inventory = Bukkit.createInventory(this, 45, "§eOpening " + crate.getName() + "...");
         
-        // --- CHOOSE ANIMATION ---
         switch (crate.getAnimationType()) {
             case ROULETTE:
                 runRouletteAnimation();
@@ -74,16 +71,28 @@ public class CrateAnimationMenu extends Menu {
         player.openInventory(inventory);
     }
 
+    // --- REDESIGNED "REEL" (SLOT MACHINE) ANIMATION ---
     private void runReelAnimation() {
-        if (animationReel.isEmpty()) {
-            player.sendMessage(ChatColor.RED + "This crate has no rewards to animate!");
-            player.closeInventory();
-            return;
-        }
+        if (animationReel.isEmpty()) { player.closeInventory(); return; }
+        
+        // Set up the static parts of the GUI
+        ItemStack placeholder = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta meta = placeholder.getItemMeta();
+        meta.setDisplayName(" ");
+        placeholder.setItemMeta(meta);
+        for(int i = 0; i < inventory.getSize(); i++) inventory.setItem(i, placeholder);
+
+        ItemStack pointer = new ItemStack(Material.BEACON);
+        ItemMeta pointerMeta = pointer.getItemMeta();
+        pointerMeta.setDisplayName("§e▲");
+        pointer.setItemMeta(pointerMeta);
+        inventory.setItem(4, pointer); // Top pointer
+        inventory.setItem(40, pointer); // Bottom pointer
+
         new BukkitRunnable() {
             int ticks = 0;
-            final int duration = 80;
-            long nextSoundTick = 0;
+            final int duration = 100; // 5 seconds
+            final int reel1StopTime = 40, reel2StopTime = 60, reel3StopTime = 80;
 
             @Override
             public void run() {
@@ -92,33 +101,39 @@ public class CrateAnimationMenu extends Menu {
                     revealReward();
                     return;
                 }
-                for (int i = 10; i <= 16; i++) {
-                    int reelIndex = (i + ticks) % animationReel.size();
-                    inventory.setItem(i, animationReel.get(reelIndex));
+
+                // Spin the reels
+                if (ticks < reel1StopTime) spinReel(12);
+                if (ticks < reel2StopTime) spinReel(13);
+                if (ticks < reel3StopTime) spinReel(14);
+                
+                // Stop the reels one by one
+                if (ticks == reel1StopTime || ticks == reel2StopTime || ticks == reel3StopTime) {
+                    player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 1.2f);
                 }
-                if (ticks >= nextSoundTick) {
-                    float pitch = 0.5f + (1.5f * ((float) ticks / duration));
-                    player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 0.5f, pitch);
-                    nextSoundTick = ticks + (duration - ticks) / 10;
-                }
+
+                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 0.5f, 1.5f);
                 ticks++;
             }
         }.runTaskTimer(GachaCrate.getInstance(), 0, 1L);
     }
+    
+    private void spinReel(int centerSlot) {
+        inventory.setItem(centerSlot - 9, animationReel.get(random.nextInt(animationReel.size())));
+        inventory.setItem(centerSlot, animationReel.get(random.nextInt(animationReel.size())));
+        inventory.setItem(centerSlot + 9, animationReel.get(random.nextInt(animationReel.size())));
+    }
 
+    // --- REDESIGNED "ROULETTE" (CYCLONE) ANIMATION ---
     private void runRouletteAnimation() {
-        if (animationReel.isEmpty()) {
-            player.sendMessage(ChatColor.RED + "This crate has no rewards to animate!");
-            player.closeInventory();
-            return;
-        }
+        if (animationReel.isEmpty()) { player.closeInventory(); return; }
 
-        final int[] roulettePath = {0, 1, 2, 3, 4, 5, 6, 7, 8, 17, 26, 25, 24, 23, 22, 21, 20, 19, 18, 9};
-        final Material[] glassPanes = {Material.RED_STAINED_GLASS_PANE, Material.ORANGE_STAINED_GLASS_PANE, Material.YELLOW_STAINED_GLASS_PANE, Material.LIME_STAINED_GLASS_PANE, Material.LIGHT_BLUE_STAINED_GLASS_PANE, Material.BLUE_STAINED_GLASS_PANE, Material.PURPLE_STAINED_GLASS_PANE};
+        final int[] path = {0, 1, 2, 3, 4, 5, 6, 7, 8, 17, 26, 35, 44, 43, 42, 41, 40, 39, 38, 37, 36, 27, 18, 9};
+        final Material[] panes = {Material.YELLOW_STAINED_GLASS_PANE, Material.ORANGE_STAINED_GLASS_PANE, Material.RED_STAINED_GLASS_PANE};
 
         new BukkitRunnable() {
             int ticks = 0;
-            final int duration = 80;
+            final int duration = 100;
 
             @Override
             public void run() {
@@ -128,38 +143,37 @@ public class CrateAnimationMenu extends Menu {
                     return;
                 }
 
-                for (int i = 0; i < roulettePath.length; i++) {
-                    int currentPathIndex = (ticks + i) % roulettePath.length;
-                    int currentPaneIndex = (ticks + i) % glassPanes.length;
-                    
-                    ItemStack pane = new ItemStack(glassPanes[currentPaneIndex]);
-                    ItemMeta meta = pane.getItemMeta();
-                    meta.setDisplayName(" ");
-                    pane.setItemMeta(meta);
-                    
-                    inventory.setItem(roulettePath[currentPathIndex], pane);
+                // Animate the cyclone
+                for (int i = 0; i < path.length; i++) {
+                    int pathIndex = (ticks + i) % path.length;
+                    int paneIndex = (ticks + i) % panes.length;
+                    inventory.setItem(path[pathIndex], new ItemStack(panes[paneIndex]));
+                }
+                
+                // Flash a potential prize in the center
+                if (ticks % 10 == 0) {
+                    inventory.setItem(22, animationReel.get(random.nextInt(animationReel.size())));
                 }
 
-                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BIT, 0.5f, 0.5f + ((float) ticks / duration));
+                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 0.5f, 0.5f + ((float) ticks / duration));
                 ticks++;
             }
         }.runTaskTimer(GachaCrate.getInstance(), 0, 1L);
     }
 
     private void revealReward() {
-        Reward finalReward = CrateOpener.rollForReward(player, crate);
+        Reward finalReward = GachaCrate.getInstance().getCrateOpener().rollForReward(player, crate);
         if (finalReward == null) {
             player.closeInventory();
             return;
         }
-
+        
+        // Final display setup
         ItemStack placeholder = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
         ItemMeta meta = placeholder.getItemMeta();
         meta.setDisplayName(" ");
         placeholder.setItemMeta(meta);
-        for (int i = 0; i < inventory.getSize(); i++) {
-            inventory.setItem(i, placeholder);
-        }
+        for (int i = 0; i < inventory.getSize(); i++) inventory.setItem(i, placeholder);
 
         ItemStack displayItem;
         if (finalReward.getType() == RewardType.ITEM) {
@@ -167,111 +181,22 @@ public class CrateAnimationMenu extends Menu {
         } else {
             displayItem = finalReward.getPreviewItem() != null ? finalReward.getPreviewItem() : new ItemStack(Material.COMMAND_BLOCK);
         }
-        inventory.setItem(13, displayItem);
+        
+        int finalSlot = (inventory.getSize() == 45) ? 22 : 13; // Center slot for 5 or 3 rows
+        inventory.setItem(finalSlot, displayItem);
 
-        playRevealSound(finalReward.getRarity());
-        player.sendTitle(finalReward.getRarity().getDisplayName(), ChatColor.GRAY + "You won a reward!", 10, 40, 20);
-
+        GachaCrate.getInstance().getCrateOpener().finalizeReward(player, crate, finalReward);
+        
         new BukkitRunnable() {
             @Override
             public void run() {
-                if (player.isOnline()) {
-                    giveRewardToPlayer(finalReward);
-                    updatePlayerData(finalReward);
-                    checkAndBroadcast(finalReward);
-                    player.closeInventory();
-                }
+                if (player.isOnline()) player.closeInventory();
             }
         }.runTaskLater(GachaCrate.getInstance(), 40L);
-    }
-    
-    private void playRevealSound(Rarity rarity) {
-        Sound sound;
-        float volume = 1.0f;
-        float pitch = 1.0f;
-
-        switch (rarity.getOrder()) {
-            case 1: sound = Sound.ENTITY_PLAYER_LEVELUP; pitch = 1.2f; break;
-            case 2: sound = Sound.ENTITY_EXPERIENCE_ORB_PICKUP; break;
-            case 3: sound = Sound.BLOCK_BEACON_ACTIVATE; break;
-            case 4: sound = Sound.ENTITY_ENDER_DRAGON_GROWL; break;
-            case 5: sound = Sound.ENTITY_WITHER_SPAWN; volume = 0.8f; break;
-            default: sound = Sound.ENTITY_PLAYER_LEVELUP; break;
-        }
-        player.playSound(player.getLocation(), sound, volume, pitch);
-    }
-
-    private void giveRewardToPlayer(Reward reward) {
-        if (reward.getType() == RewardType.ITEM) {
-            if (player.getInventory().firstEmpty() == -1) {
-                player.getWorld().dropItem(player.getLocation(), reward.getItem());
-                player.sendMessage(ChatColor.YELLOW + "Your inventory was full, so the reward was dropped at your feet!");
-            } else {
-                player.getInventory().addItem(reward.getItem());
-            }
-        } else {
-            String command = reward.getCommand().replace("{player}", player.getName());
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
-            player.sendMessage("§aYou have received a special command reward!");
-        }
-    }
-
-    private void updatePlayerData(Reward reward) {
-        PlayerData playerData = GachaCrate.getInstance().getPlayerManager().getPlayerData(player.getUniqueId());
-        if (playerData != null) {
-            playerData.incrementCratesOpened(crate.getName());
-            if (crate.isPityEnabled()) {
-                Rarity minPityRarity = GachaCrate.getInstance().getRarityManager().getRarity(crate.getPityRarityMinimum());
-                if (minPityRarity != null && reward.getRarity().getOrder() >= minPityRarity.getOrder()) {
-                    playerData.resetPityCount(crate.getName());
-                } else {
-                    playerData.incrementPityCount(crate.getName());
-                }
-            }
-        }
-    }
-
-    private void checkAndBroadcast(Reward reward) {
-        GachaCrate plugin = GachaCrate.getInstance();
-        String minRarityId = plugin.getConfig().getString("broadcast-minimum-rarity", "MYTHIC");
-        Rarity minRarity = plugin.getRarityManager().getRarity(minRarityId);
-
-        if (reward.getRarity() == null || minRarity == null) return;
-
-        if (reward.getRarity().getOrder() >= minRarity.getOrder()) {
-            spawnFirework(player);
-            
-            String itemName;
-            if (reward.getType() == RewardType.ITEM) {
-                itemName = reward.getItem().hasItemMeta() && reward.getItem().getItemMeta().hasDisplayName()
-                    ? reward.getItem().getItemMeta().getDisplayName()
-                    : reward.getItem().getType().name().replace('_', ' ');
-            } else {
-                if (reward.getPreviewItem() != null && reward.getPreviewItem().hasItemMeta() && reward.getPreviewItem().getItemMeta().hasDisplayName()) {
-                    itemName = reward.getPreviewItem().getItemMeta().getDisplayName();
-                } else {
-                    itemName = reward.getRarity().getDisplayName() + " §rCommand Reward";
-                }
-            }
-
-            String broadcastMessage = "§6[GachaCrate] §r" + player.getName() + " has won a " +
-                reward.getRarity().getDisplayName() + "§r item: " + itemName + "§r from a " + crate.getName() + " crate!";
-            Bukkit.broadcastMessage(broadcastMessage);
-        }
-    }
-
-    private void spawnFirework(Player player) {
-        Location loc = player.getLocation();
-        Firework fw = player.getWorld().spawn(loc, Firework.class);
-        FireworkMeta fwm = fw.getFireworkMeta();
-        fwm.setPower(1);
-        fwm.addEffect(FireworkEffect.builder().withColor(Color.ORANGE, Color.YELLOW).flicker(true).with(FireworkEffect.Type.BALL_LARGE).build());
-        fw.setFireworkMeta(fwm);
     }
 
     @Override
     public void handleMenu(InventoryClickEvent event) {
         event.setCancelled(true);
     }
-                }
-                        
+                            }
