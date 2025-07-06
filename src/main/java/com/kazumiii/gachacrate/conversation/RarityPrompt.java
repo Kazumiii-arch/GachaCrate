@@ -1,7 +1,3 @@
-// ========================================================================
-// File: RarityPrompt.java
-// Location: /src/main/java/com/kazumiii/gachacrate/conversation/RarityPrompt.java
-// ========================================================================
 package com.kazumiii.gachacrate.conversation;
 
 import com.kazumiii.gachacrate.GachaCrate;
@@ -20,13 +16,7 @@ public class RarityPrompt extends StringPrompt {
     private final Crate crate;
     private final Reward reward; // Can be null if not editing a specific reward
     private final Menu parentMenu;
-
-    /**
-     * Constructor for editing a specific reward's rarity.
-     * @param crate The crate containing the reward.
-     * @param reward The specific reward being edited.
-     * @param parentMenu The menu to re-open on completion.
-     */
+    
     public RarityPrompt(Crate crate, Reward reward, Menu parentMenu) {
         this.setting = "reward-rarity";
         this.crate = crate;
@@ -34,12 +24,6 @@ public class RarityPrompt extends StringPrompt {
         this.parentMenu = parentMenu;
     }
 
-    /**
-     * Constructor for editing a crate-wide rarity setting (like pity).
-     * @param setting A key to identify the setting (e.g., "pity-rarity").
-     * @param crate The crate being modified.
-     * @param parentMenu The menu to re-open on completion.
-     */
     public RarityPrompt(String setting, Crate crate, Menu parentMenu) {
         this.setting = setting;
         this.crate = crate;
