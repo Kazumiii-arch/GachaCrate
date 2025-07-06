@@ -12,6 +12,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -67,6 +68,16 @@ public class PhysicalCrateManager {
         return crateLocations.containsKey(location);
     }
 
+    /**
+     * --- THIS IS THE FIX ---
+     * This new method provides read-only access to the map of crate locations,
+     * which is what the IdleParticleTask needs to work.
+     * @return An unmodifiable map of all physical crate locations.
+     */
+    public Map<Location, String> getAllCrateLocations() {
+        return Collections.unmodifiableMap(crateLocations);
+    }
+
     private void loadLocations() {
         ConfigurationSection section = locationsConfig.getConfigurationSection("crates");
         if (section == null) return;
@@ -75,7 +86,6 @@ public class PhysicalCrateManager {
             String crateName = section.getString(path);
             if (loc != null && crateName != null) {
                 crateLocations.put(loc, crateName);
-                // Create holograms for all loaded locations on startup
                 plugin.getHologramManager().createHologram(loc, crateName);
             }
         }
@@ -91,16 +101,10 @@ public class PhysicalCrateManager {
         }
     }
 
-    /**
-     * Converts a Location object into a storable string path.
-     */
     private String locationToPath(Location loc) {
         return Objects.requireNonNull(loc.getWorld()).getName() + ";" + loc.getBlockX() + ";" + loc.getBlockY() + ";" + loc.getBlockZ();
     }
 
-    /**
-     * Converts a string path back into a Location object.
-     */
     private Location pathTolocation(String path) {
         try {
             String[] parts = path.split(";");
