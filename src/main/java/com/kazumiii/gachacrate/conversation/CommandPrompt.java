@@ -1,7 +1,3 @@
-// ========================================================================
-// File: CommandPrompt.java
-// Location: /src/main/java/com/kazumiii/gachacrate/conversation/CommandPrompt.java
-// ========================================================================
 package com.kazumiii.gachacrate.conversation;
 
 import com.kazumiii.gachacrate.GachaCrate;
