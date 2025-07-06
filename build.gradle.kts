@@ -1,4 +1,3 @@
-
 plugins {
     java
     id("com.github.johnrengelman.shadow") version "8.1.1"
@@ -10,16 +9,18 @@ version = "1.4.0" // Version bump for this final fix
 repositories {
     mavenCentral()
     maven { url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/") }
-    // The repository needed to download the DecentHolograms API
     maven { url = uri("https://jitpack.io") }
+    maven { url = uri("https://repo.codemc.io/repository/nms/") }
 }
 
 dependencies {
     // Spigot API for Minecraft 1.20.1.
     compileOnly("org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT")
 
-    // DecentHolograms API. 'compileOnly' is the correct configuration.
-    // Changed dependency to the API artifact.
+    // CORRECTED: DecentHolograms API dependency based on their build.gradle.
+    // Group ID: eu.decentsoftware.holograms
+    // Artifact ID: decentholograms-api (most probable name for the API artifact)
+    // Version: 2.8.6
     compileOnly("eu.decentsoftware.holograms:decentholograms-api:2.8.6")
 }
 
