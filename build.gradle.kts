@@ -9,11 +9,10 @@ version = "1.4.0" // Version bump for this final fix
 repositories {
     mavenCentral()
     maven { url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/") }
-
     maven {
         url = uri("https://jitpack.io/")
     }
-    maven { url = uri("https://repo.extendedclip.com/content/repositories/placeholderapi/") } // Keep this if you use PlaceholderAPI
+    maven { url = uri("https://repo.extendedclip.com/content/repositories/placeholderapi/") }
 }
 
 dependencies {
@@ -25,8 +24,8 @@ dependencies {
 }
 
 java {
-    // Set the Java version to 17, which is required for Minecraft 1.20+ plugins.
-    toolchain.languageVersion.set(JavaLanguageVersion.of(17))
+    // Set the Java version to 21 to match DecentHolograms requirements.
+    toolchain.languageVersion.set(JavaLanguageVersion.of(21)) // <--- CHANGED TO 21
 }
 
 tasks {
