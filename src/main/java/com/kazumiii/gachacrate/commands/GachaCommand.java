@@ -8,7 +8,6 @@ import com.kazumiii.gachacrate.GachaCrate;
 import com.kazumiii.gachacrate.crates.Crate;
 import com.kazumiii.gachacrate.crates.Rarity;
 import com.kazumiii.gachacrate.crates.Reward;
-import com.kazumiii.gachacrate.crates.RewardType;
 import com.kazumiii.gachacrate.guis.CrateEditorMenu;
 import com.kazumiii.gachacrate.guis.CratePreviewMenu;
 import com.kazumiii.gachacrate.guis.MainMenu;
@@ -16,6 +15,7 @@ import com.kazumiii.gachacrate.player.PlayerData;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -80,6 +80,12 @@ public class GachaCommand implements CommandExecutor {
             case "stats":
                 handleStatsCommand(sender, args);
                 break;
+            case "setblock":
+                handleSetBlock(sender, args);
+                break;
+            case "removeblock":
+                handleRemoveBlock(sender, args);
+                break;
             default:
                 sender.sendMessage("§cUnknown subcommand. Use /gacha help.");
                 break;
@@ -98,6 +104,8 @@ public class GachaCommand implements CommandExecutor {
         sender.sendMessage("§e/gacha givekey <player> <crate> [amount] §7- Gives a player a crate key.");
         sender.sendMessage("§e/gacha view <crate> §7- Shows the possible rewards in a crate.");
         sender.sendMessage("§e/gacha stats [player] §7- Shows crate opening stats.");
+        sender.sendMessage("§e/gacha setblock <crate> §7- Sets the block you're looking at as a physical crate.");
+        sender.sendMessage("§e/gacha removeblock §7- Removes the physical crate you're looking at.");
     }
 
     private void handleCreateCommand(CommandSender sender, String[] args) {
@@ -351,5 +359,52 @@ public class GachaCommand implements CommandExecutor {
             });
         }
     }
+
+    private void handleSetBlock(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("§cThis command can only be run by a player.");
+            return;
+        }
+        Player player = (Player) sender;
+        if (!player.hasPermission("gacha.admin.setblock")) {
+            player.sendMessage("§cYou don't have permission to do that.");
+            return;
+        }
+        if (args.length < 2) {
+            player.sendMessage("§cUsage: /gacha setblock <crateName>");
+            return;
+        }
+        String crateName = args[1];
+        if (plugin.getCrateManager().getCrate(crateName) == null) {
+            player.sendMessage("§cError: Crate '" + crateName + "' does not exist.");
+            return;
+        }
+        Block targetBlock = player.getTargetBlock(null, 5);
+        if (targetBlock == null || targetBlock.getType() == Material.AIR) {
+            player.sendMessage("§cYou must be looking at a block within 5 blocks of you.");
+            return;
+        }
+        plugin.getPhysicalCrateManager().addCrate(targetBlock.getLocation(), crateName);
+        player.sendMessage("§aSuccess! This block is now a physical '" + crateName + "' crate.");
+    }
+
+    private void handleRemoveBlock(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("§cThis command can only be run by a player.");
+            return;
+        }
+        Player player = (Player) sender;
+        if (!player.hasPermission("gacha.admin.setblock")) {
+            player.sendMessage("§cYou don't have permission to do that.");
+            return;
+        }
+        Block targetBlock = player.getTargetBlock(null, 5);
+        if (targetBlock == null || !plugin.getPhysicalCrateManager().isCrateLocation(targetBlock.getLocation())) {
+            player.sendMessage("§cYou are not looking at a physical crate block.");
+            return;
+        }
+        plugin.getPhysicalCrateManager().removeCrate(targetBlock.getLocation());
+        player.sendMessage("§aSuccess! This block is no longer a physical crate.");
+    }
             }
-                
+            
