@@ -10,18 +10,17 @@ repositories {
     mavenCentral()
     maven { url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/") }
     maven { url = uri("https://jitpack.io") }
-    maven { url = uri("https://repo.codemc.io/repository/nms/") }
+    // ADDED: Official DecentHolograms repositories
+    maven { url = uri("https://oss.sonatype.org/content/repositories/snapshots") }
+    maven { url = uri("https://repo.codemc.io/repository/maven-public/") }
+    maven { url = uri("https://repo.extendedclip.com/content/repositories/placeholderapi/") } // Also added as it's used by DH
 }
 
 dependencies {
     // Spigot API for Minecraft 1.20.1.
     compileOnly("org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT")
 
-    // CORRECTED: DecentHolograms API dependency based on their build.gradle.
-    // Group ID: eu.decentsoftware.holograms
-    // Artifact ID: decentholograms-api (most probable name for the API artifact)
-    // Version: 2.8.6
-    compileOnly("eu.decentsoftware.holograms:decentholograms-api:2.8.6")
+    compileOnly("eu.decentsoftware.holograms:decentholograms-api:2.9.4")
 }
 
 java {
