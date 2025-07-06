@@ -1,7 +1,3 @@
-// ========================================================================
-// File: AnimationType.java
-// Location: /src/main/java/com/kazumiii/gachacrate/animations/AnimationType.java
-// ========================================================================
 package com.kazumiii.gachacrate.animations;
 
 public enum AnimationType {
