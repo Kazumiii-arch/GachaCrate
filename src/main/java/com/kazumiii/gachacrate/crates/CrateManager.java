@@ -75,6 +75,7 @@ public class CrateManager {
             String cratePath = "crates." + crate.getName();
             
             // Save all crate-level settings
+            cratesConfig.set(cratePath + ".opening-mode", crate.getOpeningMode().name());
             cratesConfig.set(cratePath + ".animation-type", crate.getAnimationType().name());
             if (crate.isPityEnabled()) {
                 cratesConfig.set(cratePath + ".pity-system.enabled", true);
@@ -122,12 +123,19 @@ public class CrateManager {
             Crate crate = new Crate(crateName);
             String cratePath = "crates." + crateName;
 
+            // Load opening mode
+            try {
+                OpeningMode mode = OpeningMode.valueOf(cratesConfig.getString(cratePath + ".opening-mode", "PHYSICAL_BLOCKS"));
+                crate.setOpeningMode(mode);
+            } catch (IllegalArgumentException e) {
+                crate.setOpeningMode(OpeningMode.PHYSICAL_BLOCKS);
+            }
+
             // Load animation type
             try {
                 AnimationType animType = AnimationType.valueOf(cratesConfig.getString(cratePath + ".animation-type", "REEL"));
                 crate.setAnimationType(animType);
             } catch (IllegalArgumentException e) {
-                plugin.getLogger().warning("Invalid animation-type for crate '" + crateName + "'. Defaulting to REEL.");
                 crate.setAnimationType(AnimationType.REEL);
             }
 
@@ -183,5 +191,4 @@ public class CrateManager {
         }
         plugin.getLogger().info("Loaded " + crates.size() + " crates from config.");
     }
-                                   }
-                                                           
+                        }
