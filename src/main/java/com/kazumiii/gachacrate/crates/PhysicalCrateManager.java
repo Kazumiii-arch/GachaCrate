@@ -1,0 +1,113 @@
+// ========================================================================
+// File: PhysicalCrateManager.java
+// Location: /src/main/java/com/kazumiii/gachacrate/crates/PhysicalCrateManager.java
+// ========================================================================
+package com.kazumiii.gachacrate.crates;
+
+import com.kazumiii.gachacrate.GachaCrate;
+import org.bukkit.Location;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+
+public class PhysicalCrateManager {
+
+    private final GachaCrate plugin;
+    private final Map<Location, String> crateLocations = new HashMap<>();
+    private File locationsFile;
+    private FileConfiguration locationsConfig;
+
+    public PhysicalCrateManager(GachaCrate plugin) {
+        this.plugin = plugin;
+        setupFile();
+        loadLocations();
+    }
+
+    private void setupFile() {
+        locationsFile = new File(plugin.getDataFolder(), "locations.yml");
+        if (!locationsFile.exists()) {
+            try {
+                locationsFile.createNewFile();
+            } catch (IOException e) {
+                plugin.getLogger().severe("Could not create locations.yml!");
+                e.printStackTrace();
+            }
+        }
+        locationsConfig = YamlConfiguration.loadConfiguration(locationsFile);
+    }
+
+    public void addCrate(Location location, String crateName) {
+        crateLocations.put(location, crateName);
+        locationsConfig.set("crates." + locationToPath(location), crateName);
+        saveFile();
+        plugin.getHologramManager().createHologram(location, crateName);
+    }
+
+    public void removeCrate(Location location) {
+        String crateName = getCrateNameAt(location);
+        if (crateName != null) {
+            crateLocations.remove(location);
+            locationsConfig.set("crates." + locationToPath(location), null);
+            saveFile();
+            plugin.getHologramManager().removeHologram(location);
+        }
+    }
+
+    public String getCrateNameAt(Location location) {
+        return crateLocations.get(location);
+    }
+
+    public boolean isCrateLocation(Location location) {
+        return crateLocations.containsKey(location);
+    }
+
+    private void loadLocations() {
+        ConfigurationSection section = locationsConfig.getConfigurationSection("crates");
+        if (section == null) return;
+        for (String path : section.getKeys(false)) {
+            Location loc = pathTolocation(path);
+            String crateName = section.getString(path);
+            if (loc != null && crateName != null) {
+                crateLocations.put(loc, crateName);
+                // Create holograms for all loaded locations on startup
+                plugin.getHologramManager().createHologram(loc, crateName);
+            }
+        }
+        plugin.getLogger().info("Loaded " + crateLocations.size() + " physical crate locations.");
+    }
+
+    private void saveFile() {
+        try {
+            locationsConfig.save(locationsFile);
+        } catch (IOException e) {
+            plugin.getLogger().severe("Could not save locations.yml!");
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Converts a Location object into a storable string path.
+     */
+    private String locationToPath(Location loc) {
+        return Objects.requireNonNull(loc.getWorld()).getName() + ";" + loc.getBlockX() + ";" + loc.getBlockY() + ";" + loc.getBlockZ();
+    }
+
+    /**
+     * Converts a string path back into a Location object.
+     */
+    private Location pathTolocation(String path) {
+        try {
+            String[] parts = path.split(";");
+            return new Location(plugin.getServer().getWorld(parts[0]), Integer.parseInt(parts[1]), Integer.parseInt(parts[2]), Integer.parseInt(parts[3]));
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to parse a location from locations.yml: " + path);
+            return null;
+        }
+    }
+}
