@@ -5,6 +5,7 @@
 package com.kazumiii.gachacrate.crates;
 
 import com.kazumiii.gachacrate.animations.AnimationType;
+import org.bukkit.Particle;
 import org.bukkit.inventory.ItemStack;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -24,6 +25,7 @@ public class Crate {
     private LocalDate endDate;
     private AnimationType animationType;
     private OpeningMode openingMode;
+    private Particle idleParticle;
 
     public Crate(String name) {
         this.name = name;
@@ -33,6 +35,7 @@ public class Crate {
         this.timeLimitEnabled = false;
         this.animationType = AnimationType.REEL; // Default animation
         this.openingMode = OpeningMode.PHYSICAL_BLOCKS; // Default opening mode
+        this.idleParticle = null; // Default to no idle particles
     }
     
     // --- Getters ---
@@ -46,6 +49,7 @@ public class Crate {
     public LocalDate getEndDate() { return endDate; }
     public AnimationType getAnimationType() { return animationType; }
     public OpeningMode getOpeningMode() { return openingMode; }
+    public Particle getIdleParticle() { return idleParticle; }
 
     // --- Setters ---
     public void setPityEnabled(boolean pityEnabled) { this.pityEnabled = pityEnabled; }
@@ -56,6 +60,7 @@ public class Crate {
     public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
     public void setAnimationType(AnimationType animationType) { this.animationType = animationType; }
     public void setOpeningMode(OpeningMode openingMode) { this.openingMode = openingMode; }
+    public void setIdleParticle(Particle idleParticle) { this.idleParticle = idleParticle; }
 
     // --- Logic Methods ---
     public void addReward(Reward reward) { this.rewards.add(reward); }
