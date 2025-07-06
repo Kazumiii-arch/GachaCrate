@@ -13,33 +13,40 @@ public class Reward {
     private Rarity rarity;
     private double chance;
     
-    private final ItemStack item; // The actual item for ITEM rewards
-    private final String command; // The actual command for COMMAND rewards
-    private ItemStack previewItem; // The visual representation for COMMAND rewards
+    // This is now modifiable for ITEM rewards
+    private ItemStack item; 
+    private final String command;
+    private ItemStack previewItem;
 
-    // Constructor for an ITEM reward
+    /**
+     * Constructor for creating a new ITEM reward.
+     */
     public Reward(ItemStack item, Rarity rarity, double chance) {
         this.uniqueId = UUID.randomUUID();
         this.type = RewardType.ITEM;
         this.item = item;
         this.command = null;
-        this.previewItem = null; // Not used for item rewards
+        this.previewItem = null;
         this.rarity = rarity;
         this.chance = chance;
     }
 
-    // Constructor for a COMMAND reward
+    /**
+     * Constructor for creating a new COMMAND reward.
+     */
     public Reward(String command, Rarity rarity, double chance) {
         this.uniqueId = UUID.randomUUID();
         this.type = RewardType.COMMAND;
         this.command = command;
         this.item = null;
-        this.previewItem = null; // Can be set later
+        this.previewItem = null;
         this.rarity = rarity;
         this.chance = chance;
     }
     
-    // Full constructor for loading from file
+    /**
+     * Full constructor for loading a reward from the config file.
+     */
     public Reward(UUID uniqueId, RewardType type, ItemStack item, String command, ItemStack previewItem, Rarity rarity, double chance) {
         this.uniqueId = uniqueId;
         this.type = type;
@@ -50,7 +57,7 @@ public class Reward {
         this.chance = chance;
     }
 
-    // Getters
+    // --- Getters ---
     public UUID getUniqueId() { return uniqueId; }
     public RewardType getType() { return type; }
     public Rarity getRarity() { return rarity; }
@@ -59,8 +66,19 @@ public class Reward {
     public String getCommand() { return command; }
     public ItemStack getPreviewItem() { return previewItem; }
     
-    // Setters
+    // --- Setters for Editing ---
     public void setRarity(Rarity rarity) { this.rarity = rarity; }
     public void setChance(double chance) { this.chance = chance; }
     public void setPreviewItem(ItemStack previewItem) { this.previewItem = previewItem; }
+    
+    /**
+     * Sets the physical item for an ITEM type reward.
+     * This has no effect on COMMAND rewards.
+     * @param item The new ItemStack for the reward.
+     */
+    public void setItem(ItemStack item) {
+        if (this.type == RewardType.ITEM) {
+            this.item = item;
+        }
+    }
 }
