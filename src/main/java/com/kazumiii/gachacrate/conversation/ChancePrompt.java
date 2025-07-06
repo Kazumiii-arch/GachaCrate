@@ -8,7 +8,6 @@ import com.kazumiii.gachacrate.GachaCrate;
 import com.kazumiii.gachacrate.crates.Crate;
 import com.kazumiii.gachacrate.crates.Reward;
 import com.kazumiii.gachacrate.guis.Menu;
-import com.kazumiii.gachacrate.guis.RewardEditorMenu;
 import org.bukkit.conversations.ConversationContext;
 import org.bukkit.conversations.Prompt;
 import org.bukkit.conversations.StringPrompt;
@@ -18,10 +17,10 @@ public class ChancePrompt extends StringPrompt {
 
     private final Crate crate;
     private final Reward reward;
-    private final Menu parentMenu; // Add the parentMenu field
+    private final Menu parentMenu;
 
     /**
-     * A prompt for getting a new chance value from a player.
+     * A reusable prompt for getting a new chance value from a player.
      * @param crate The crate being modified.
      * @param reward The reward being edited.
      * @param parentMenu The menu to re-open after the conversation.
