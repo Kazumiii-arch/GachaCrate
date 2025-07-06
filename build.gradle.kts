@@ -1,8 +1,3 @@
-// ========================================================================
-// File: build.gradle.kts
-// Location: /build.gradle.kts
-// ========================================================================
-
 plugins {
     java
     id("com.github.johnrengelman.shadow") version "8.1.1"
