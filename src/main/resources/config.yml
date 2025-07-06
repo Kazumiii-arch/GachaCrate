@@ -1,4 +1,11 @@
+# ========================================================================
+# File: config.yml
+# Location: /src/main/resources/config.yml
+# ========================================================================
 # GachaCrate Plugin by Kazumiii - Main Configuration
+
+# The 'crate-opening-mode' setting has been removed from here.
+# It is now configured per-crate in the /gacha GUI for maximum flexibility.
 
 # --- KEY APPEARANCE ---
 # Customize the look of all gacha keys.
@@ -15,7 +22,7 @@ broadcast-minimum-rarity: "MYTHIC"
 
 # --- MESSAGES ---
 # You can customize the message a player receives the first time they get a key.
-# Use {player} for the player's name.
+# Use {player} for the player's name. Use '&' for color codes.
 messages:
   first-key-welcome:
     - "&e&l---------------------------------"
