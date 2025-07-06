@@ -107,13 +107,12 @@ public class RewardEditorMenu extends Menu {
         switch (clicked.getType()) {
             case NAME_TAG:
                 player.closeInventory();
-                // We pass 'this' as the parentMenu to be re-opened on completion/cancellation.
                 Conversation rarityConvo = cf.withFirstPrompt(new RarityPrompt(crate, reward, this)).withLocalEcho(false).buildConversation(player);
                 rarityConvo.begin();
                 break;
             case EXPERIENCE_BOTTLE:
                 player.closeInventory();
-                // Pass 'this' as the parentMenu here as well.
+                // This now correctly passes the parent menu 'this' to the constructor
                 Conversation chanceConvo = cf.withFirstPrompt(new ChancePrompt(crate, reward, this)).withLocalEcho(false).buildConversation(player);
                 chanceConvo.begin();
                 break;
