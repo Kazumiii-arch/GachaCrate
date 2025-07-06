@@ -6,6 +6,7 @@ package com.kazumiii.gachacrate.crates;
 
 import com.kazumiii.gachacrate.GachaCrate;
 import com.kazumiii.gachacrate.animations.AnimationType;
+import org.bukkit.Particle;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -77,6 +78,13 @@ public class CrateManager {
             // Save all crate-level settings
             cratesConfig.set(cratePath + ".opening-mode", crate.getOpeningMode().name());
             cratesConfig.set(cratePath + ".animation-type", crate.getAnimationType().name());
+            
+            if (crate.getIdleParticle() != null) {
+                cratesConfig.set(cratePath + ".idle-particle", crate.getIdleParticle().name());
+            } else {
+                cratesConfig.set(cratePath + ".idle-particle", null);
+            }
+
             if (crate.isPityEnabled()) {
                 cratesConfig.set(cratePath + ".pity-system.enabled", true);
                 cratesConfig.set(cratePath + ".pity-system.threshold", crate.getPityThreshold());
@@ -139,6 +147,16 @@ public class CrateManager {
                 crate.setAnimationType(AnimationType.REEL);
             }
 
+            // Load idle particle
+            if (cratesConfig.contains(cratePath + ".idle-particle")) {
+                try {
+                    Particle particle = Particle.valueOf(cratesConfig.getString(cratePath + ".idle-particle"));
+                    crate.setIdleParticle(particle);
+                } catch (IllegalArgumentException e) {
+                    plugin.getLogger().warning("Invalid idle-particle for crate '" + crateName + "'.");
+                }
+            }
+
             // Load pity system settings
             if (cratesConfig.getBoolean(cratePath + ".pity-system.enabled", false)) {
                 crate.setPityEnabled(true);
@@ -191,4 +209,5 @@ public class CrateManager {
         }
         plugin.getLogger().info("Loaded " + crates.size() + " crates from config.");
     }
-                        }
+        }
+        
