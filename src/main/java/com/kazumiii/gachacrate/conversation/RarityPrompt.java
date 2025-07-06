@@ -8,7 +8,7 @@ import com.kazumiii.gachacrate.GachaCrate;
 import com.kazumiii.gachacrate.crates.Crate;
 import com.kazumiii.gachacrate.crates.Rarity;
 import com.kazumiii.gachacrate.crates.Reward;
-import com.kazumiii.gachacrate.guis.RewardEditorMenu;
+import com.kazumiii.gachacrate.guis.Menu;
 import org.bukkit.conversations.ConversationContext;
 import org.bukkit.conversations.Prompt;
 import org.bukkit.conversations.StringPrompt;
@@ -16,14 +16,37 @@ import org.bukkit.entity.Player;
 
 public class RarityPrompt extends StringPrompt {
 
+    private final String setting;
     private final Crate crate;
-    private final Reward reward;
+    private final Reward reward; // Can be null if not editing a specific reward
+    private final Menu parentMenu;
 
-    public RarityPrompt(Crate crate, Reward reward) {
+    /**
+     * Constructor for editing a specific reward's rarity.
+     * @param crate The crate containing the reward.
+     * @param reward The specific reward being edited.
+     * @param parentMenu The menu to re-open on completion.
+     */
+    public RarityPrompt(Crate crate, Reward reward, Menu parentMenu) {
+        this.setting = "reward-rarity";
         this.crate = crate;
         this.reward = reward;
+        this.parentMenu = parentMenu;
     }
 
+    /**
+     * Constructor for editing a crate-wide rarity setting (like pity).
+     * @param setting A key to identify the setting (e.g., "pity-rarity").
+     * @param crate The crate being modified.
+     * @param parentMenu The menu to re-open on completion.
+     */
+    public RarityPrompt(String setting, Crate crate, Menu parentMenu) {
+        this.setting = setting;
+        this.crate = crate;
+        this.reward = null; // Not editing a specific reward
+        this.parentMenu = parentMenu;
+    }
+    
     @Override
     public String getPromptText(ConversationContext context) {
         Player player = (Player) context.getForWhom();
@@ -36,23 +59,25 @@ public class RarityPrompt extends StringPrompt {
         Player player = (Player) context.getForWhom();
         if (input.equalsIgnoreCase("cancel")) {
             player.sendMessage("§cOperation cancelled.");
-            new RewardEditorMenu(player, crate, reward).open();
+            parentMenu.open();
             return END_OF_CONVERSATION;
         }
 
         Rarity newRarity = GachaCrate.getInstance().getRarityManager().getRarity(input);
         if (newRarity == null) {
             player.sendMessage("§cInvalid rarity! Please try again.");
-            // We return "this" to re-ask the same prompt.
-            return this;
+            return this; // Re-ask the same prompt
         }
 
-        reward.setRarity(newRarity);
+        if ("reward-rarity".equals(setting) && reward != null) {
+            reward.setRarity(newRarity);
+        } else if ("pity-rarity".equals(setting)) {
+            crate.setPityRarityMinimum(newRarity.getId());
+        }
+        
         GachaCrate.getInstance().getCrateManager().saveCrates();
         player.sendMessage("§aRarity updated successfully!");
-        
-        // Re-open the menu to show the change
-        new RewardEditorMenu(player, crate, reward).open();
+        parentMenu.open(); // Re-open the previous menu
         return END_OF_CONVERSATION;
     }
 }
