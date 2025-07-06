@@ -1,7 +1,3 @@
-// ========================================================================
-// File: Crate.java
-// Location: /src/main/java/com/kazumiii/gachacrate/crates/Crate.java
-// ========================================================================
 package com.kazumiii.gachacrate.crates;
 
 import com.kazumiii.gachacrate.animations.AnimationType;
@@ -66,11 +62,7 @@ public class Crate {
     public void addReward(Reward reward) { this.rewards.add(reward); }
     public void removeReward(Reward reward) { this.rewards.remove(reward); }
 
-    /**
-     * Finds a specific reward within this crate by its unique ID.
-     * @param id The UUID of the reward to find.
-     * @return The Reward object, or null if not found.
-     */
+
     public Reward getRewardById(UUID id) {
         return rewards.stream()
                 .filter(r -> r.getUniqueId().equals(id))
