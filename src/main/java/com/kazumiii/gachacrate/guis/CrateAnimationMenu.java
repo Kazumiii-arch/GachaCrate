@@ -5,6 +5,7 @@
 package com.kazumiii.gachacrate.guis;
 
 import com.kazumiii.gachacrate.GachaCrate;
+import com.kazumiii.gachacrate.animations.AnimationType;
 import com.kazumiii.gachacrate.crates.Crate;
 import com.kazumiii.gachacrate.crates.CrateOpener;
 import com.kazumiii.gachacrate.crates.Rarity;
@@ -23,7 +24,6 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 
 public class CrateAnimationMenu extends Menu {
 
@@ -49,7 +49,6 @@ public class CrateAnimationMenu extends Menu {
             } else {
                 displayItem = reward.getPreviewItem() != null ? reward.getPreviewItem() : new ItemStack(Material.COMMAND_BLOCK);
             }
-            // Add more common items to the reel more often to make rare items feel rarer
             int weight = (int) (100 / (reward.getChance() + 1));
             for (int i = 0; i < Math.max(1, weight); i++) {
                 animationReel.add(displayItem);
@@ -61,20 +60,29 @@ public class CrateAnimationMenu extends Menu {
     @Override
     public void open() {
         inventory = Bukkit.createInventory(this, 27, "§eOpening " + crate.getName() + "...");
-        runAnimation();
+        
+        // --- CHOOSE ANIMATION ---
+        switch (crate.getAnimationType()) {
+            case ROULETTE:
+                runRouletteAnimation();
+                break;
+            case REEL:
+            default:
+                runReelAnimation();
+                break;
+        }
         player.openInventory(inventory);
     }
 
-    private void runAnimation() {
+    private void runReelAnimation() {
         if (animationReel.isEmpty()) {
             player.sendMessage(ChatColor.RED + "This crate has no rewards to animate!");
             player.closeInventory();
             return;
         }
-
         new BukkitRunnable() {
             int ticks = 0;
-            final int duration = 80; // 4 seconds total
+            final int duration = 80;
             long nextSoundTick = 0;
 
             @Override
@@ -84,20 +92,55 @@ public class CrateAnimationMenu extends Menu {
                     revealReward();
                     return;
                 }
-
-                // The "Reel" Animation
                 for (int i = 10; i <= 16; i++) {
                     int reelIndex = (i + ticks) % animationReel.size();
                     inventory.setItem(i, animationReel.get(reelIndex));
                 }
-
-                // Sound Logic - speeds up as it progresses
                 if (ticks >= nextSoundTick) {
                     float pitch = 0.5f + (1.5f * ((float) ticks / duration));
                     player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 0.5f, pitch);
                     nextSoundTick = ticks + (duration - ticks) / 10;
                 }
+                ticks++;
+            }
+        }.runTaskTimer(GachaCrate.getInstance(), 0, 1L);
+    }
 
+    private void runRouletteAnimation() {
+        if (animationReel.isEmpty()) {
+            player.sendMessage(ChatColor.RED + "This crate has no rewards to animate!");
+            player.closeInventory();
+            return;
+        }
+
+        final int[] roulettePath = {0, 1, 2, 3, 4, 5, 6, 7, 8, 17, 26, 25, 24, 23, 22, 21, 20, 19, 18, 9};
+        final Material[] glassPanes = {Material.RED_STAINED_GLASS_PANE, Material.ORANGE_STAINED_GLASS_PANE, Material.YELLOW_STAINED_GLASS_PANE, Material.LIME_STAINED_GLASS_PANE, Material.LIGHT_BLUE_STAINED_GLASS_PANE, Material.BLUE_STAINED_GLASS_PANE, Material.PURPLE_STAINED_GLASS_PANE};
+
+        new BukkitRunnable() {
+            int ticks = 0;
+            final int duration = 80;
+
+            @Override
+            public void run() {
+                if (ticks >= duration) {
+                    this.cancel();
+                    revealReward();
+                    return;
+                }
+
+                for (int i = 0; i < roulettePath.length; i++) {
+                    int currentPathIndex = (ticks + i) % roulettePath.length;
+                    int currentPaneIndex = (ticks + i) % glassPanes.length;
+                    
+                    ItemStack pane = new ItemStack(glassPanes[currentPaneIndex]);
+                    ItemMeta meta = pane.getItemMeta();
+                    meta.setDisplayName(" ");
+                    pane.setItemMeta(meta);
+                    
+                    inventory.setItem(roulettePath[currentPathIndex], pane);
+                }
+
+                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BIT, 0.5f, 0.5f + ((float) ticks / duration));
                 ticks++;
             }
         }.runTaskTimer(GachaCrate.getInstance(), 0, 1L);
@@ -110,7 +153,6 @@ public class CrateAnimationMenu extends Menu {
             return;
         }
 
-        // Set up the final display
         ItemStack placeholder = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
         ItemMeta meta = placeholder.getItemMeta();
         meta.setDisplayName(" ");
@@ -127,11 +169,9 @@ public class CrateAnimationMenu extends Menu {
         }
         inventory.setItem(13, displayItem);
 
-        // Dramatic Reveal Sound & Title
         playRevealSound(finalReward.getRarity());
         player.sendTitle(finalReward.getRarity().getDisplayName(), ChatColor.GRAY + "You won a reward!", 10, 40, 20);
 
-        // Give Reward & Update Stats after a delay
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -151,26 +191,12 @@ public class CrateAnimationMenu extends Menu {
         float pitch = 1.0f;
 
         switch (rarity.getOrder()) {
-            case 1: // Common
-                sound = Sound.ENTITY_PLAYER_LEVELUP;
-                pitch = 1.2f;
-                break;
-            case 2: // Rare
-                sound = Sound.ENTITY_EXPERIENCE_ORB_PICKUP;
-                break;
-            case 3: // Epic
-                sound = Sound.BLOCK_BEACON_ACTIVATE;
-                break;
-            case 4: // Mythic
-                sound = Sound.ENTITY_ENDER_DRAGON_GROWL;
-                break;
-            case 5: // Divine or higher
-                sound = Sound.ENTITY_WITHER_SPAWN;
-                volume = 0.8f;
-                break;
-            default:
-                sound = Sound.ENTITY_PLAYER_LEVELUP;
-                break;
+            case 1: sound = Sound.ENTITY_PLAYER_LEVELUP; pitch = 1.2f; break;
+            case 2: sound = Sound.ENTITY_EXPERIENCE_ORB_PICKUP; break;
+            case 3: sound = Sound.BLOCK_BEACON_ACTIVATE; break;
+            case 4: sound = Sound.ENTITY_ENDER_DRAGON_GROWL; break;
+            case 5: sound = Sound.ENTITY_WITHER_SPAWN; volume = 0.8f; break;
+            default: sound = Sound.ENTITY_PLAYER_LEVELUP; break;
         }
         player.playSound(player.getLocation(), sound, volume, pitch);
     }
@@ -247,4 +273,5 @@ public class CrateAnimationMenu extends Menu {
     public void handleMenu(InventoryClickEvent event) {
         event.setCancelled(true);
     }
-            }
+                }
+                        
