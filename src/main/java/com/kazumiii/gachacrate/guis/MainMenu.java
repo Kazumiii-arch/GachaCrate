@@ -14,6 +14,7 @@ import org.bukkit.conversations.Conversation;
 import org.bukkit.conversations.ConversationFactory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -29,29 +30,47 @@ public class MainMenu extends Menu {
 
     @Override
     public void open() {
-        inventory = Bukkit.createInventory(this, 54, "GachaCrate Admin Menu");
+        inventory = Bukkit.createInventory(this, 54, "§8GachaCrate Admin Menu");
 
-        // Add an item for each existing crate
+        // --- Decorative Panes ---
+        ItemStack placeholder = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+        ItemMeta meta = placeholder.getItemMeta();
+        meta.setDisplayName(" ");
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+        placeholder.setItemMeta(meta);
+        for (int i = 0; i < inventory.getSize(); i++) {
+            inventory.setItem(i, placeholder);
+        }
+        for (int i = 10; i < 44; i++) { // Clear the middle area for crate items
+             if (i % 9 != 0 && i % 9 != 8) inventory.setItem(i, null);
+        }
+
+        // --- Crate Items ---
+        int slot = 10;
         for (Crate crate : GachaCrate.getInstance().getCrateManager().getAllCrates().values()) {
+            if (slot > 43) break; // Prevent overflow if there are too many crates
+            if (slot % 9 == 0 || slot % 9 == 8) slot++; // Skip border slots
+
             ItemStack crateItem = new ItemStack(Material.CHEST);
-            ItemMeta meta = crateItem.getItemMeta();
-            meta.setDisplayName(ChatColor.AQUA + crate.getName());
+            ItemMeta crateMeta = crateItem.getItemMeta();
+            crateMeta.setDisplayName(ChatColor.AQUA + crate.getName());
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Rewards: " + ChatColor.WHITE + crate.getRewards().size());
             lore.add("");
             lore.add(ChatColor.YELLOW + "► Click to manage this crate.");
-            meta.setLore(lore);
-            crateItem.setItemMeta(meta);
-            inventory.addItem(crateItem);
+            crateMeta.setLore(lore);
+            crateItem.setItemMeta(crateMeta);
+            inventory.setItem(slot, crateItem);
+            slot++;
         }
 
-        // Add a "Create New Crate" button
+        // --- Control Button ---
         ItemStack createItem = new ItemStack(Material.NETHER_STAR);
         ItemMeta createMeta = createItem.getItemMeta();
         createMeta.setDisplayName(ChatColor.GREEN + "✚ Create New Crate");
         createMeta.setLore(Collections.singletonList(ChatColor.GRAY + "Click to create a new crate."));
         createItem.setItemMeta(createMeta);
-        inventory.setItem(53, createItem); // Place in the bottom right corner
+        inventory.setItem(49, createItem); // Center bottom slot
 
         player.openInventory(inventory);
     }
