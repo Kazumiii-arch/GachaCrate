@@ -1,7 +1,3 @@
-// ========================================================================
-// File: GachaCrate.java
-// Location: /src/main/java/com/kazumiii/gachacrate/GachaCrate.java
-// ========================================================================
 package com.kazumiii.gachacrate;
 
 import com.kazumiii.gachacrate.animations.IdleParticleTask;
