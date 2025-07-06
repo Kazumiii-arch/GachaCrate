@@ -27,7 +27,7 @@ public class CrateSettingsMenu extends Menu {
 
     @Override
     public void open() {
-        inventory = Bukkit.createInventory(this, 27, "§8Settings: " + crate.getName());
+        inventory = Bukkit.createInventory(this, 36, "§8Settings: " + crate.getName());
 
         // --- Decorative Panes ---
         ItemStack placeholder = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
@@ -62,6 +62,12 @@ public class CrateSettingsMenu extends Menu {
         animMeta.setDisplayName(ChatColor.GREEN + "Animation Settings");
         animMeta.setLore(Arrays.asList(ChatColor.GRAY + "Change the visual animation", ChatColor.GRAY + "for opening this crate."));
         animationSettings.setItemMeta(animMeta);
+        
+        ItemStack openingModeButton = new ItemStack(Material.ENDER_EYE);
+        ItemMeta openMeta = openingModeButton.getItemMeta();
+        openMeta.setDisplayName(ChatColor.YELLOW + "Opening Mode Settings");
+        openMeta.setLore(Arrays.asList(ChatColor.GRAY + "Choose how players open this crate."));
+        openingModeButton.setItemMeta(openMeta);
 
         ItemStack backButton = new ItemStack(Material.ARROW);
         ItemMeta backMeta = backButton.getItemMeta();
@@ -72,7 +78,8 @@ public class CrateSettingsMenu extends Menu {
         inventory.setItem(12, pitySettings);
         inventory.setItem(14, timeLimitSettings);
         inventory.setItem(16, animationSettings);
-        inventory.setItem(18, backButton);
+        inventory.setItem(22, openingModeButton); // Centered on the bottom row
+        inventory.setItem(27, backButton); // Bottom-left corner
 
         player.openInventory(inventory);
     }
@@ -95,6 +102,9 @@ public class CrateSettingsMenu extends Menu {
             case JUKEBOX:
                 new AnimationSelectorMenu(player, crate).open();
                 break;
+            case ENDER_EYE:
+                new OpeningModeMenu(player, crate).open();
+                break;
             case ARROW:
                 new MainMenu(player).open();
                 break;
@@ -102,4 +112,4 @@ public class CrateSettingsMenu extends Menu {
                 break;
         }
     }
-}
+    }
