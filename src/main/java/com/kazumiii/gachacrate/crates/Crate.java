@@ -4,6 +4,7 @@
 // ========================================================================
 package com.kazumiii.gachacrate.crates;
 
+import com.kazumiii.gachacrate.animations.AnimationType;
 import org.bukkit.inventory.ItemStack;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -14,19 +15,22 @@ public class Crate {
     private final String name;
     private final List<Reward> rewards;
     
+    // Advanced Feature Fields
     private boolean pityEnabled;
     private int pityThreshold;
     private String pityRarityMinimum;
-
     private boolean timeLimitEnabled;
     private LocalDate startDate;
     private LocalDate endDate;
+    private AnimationType animationType;
 
     public Crate(String name) {
         this.name = name;
         this.rewards = new ArrayList<>();
+        // Default values for new crates
         this.pityEnabled = false;
         this.timeLimitEnabled = false;
+        this.animationType = AnimationType.REEL; // Default animation
     }
     
     // --- Getters ---
@@ -38,6 +42,7 @@ public class Crate {
     public boolean isTimeLimitEnabled() { return timeLimitEnabled; }
     public LocalDate getStartDate() { return startDate; }
     public LocalDate getEndDate() { return endDate; }
+    public AnimationType getAnimationType() { return animationType; }
 
     // --- Setters ---
     public void setPityEnabled(boolean pityEnabled) { this.pityEnabled = pityEnabled; }
@@ -46,6 +51,7 @@ public class Crate {
     public void setTimeLimitEnabled(boolean timeLimitEnabled) { this.timeLimitEnabled = timeLimitEnabled; }
     public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
     public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
+    public void setAnimationType(AnimationType animationType) { this.animationType = animationType; }
 
     // --- Logic Methods ---
     public void addReward(Reward reward) { this.rewards.add(reward); }
@@ -58,7 +64,7 @@ public class Crate {
      */
     public Reward getRewardById(UUID id) {
         return rewards.stream()
-                .filter(reward -> reward.getUniqueId().equals(id))
+                .filter(r -> r.getUniqueId().equals(id))
                 .findFirst()
                 .orElse(null);
     }
