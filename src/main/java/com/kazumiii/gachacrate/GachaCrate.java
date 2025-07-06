@@ -30,7 +30,6 @@ public final class GachaCrate extends JavaPlugin {
     public void onEnable() {
         instance = this;
 
-        // Load config and initialize managers
         getConfig().options().copyDefaults(true);
         saveDefaultConfig();
         
@@ -38,14 +37,16 @@ public final class GachaCrate extends JavaPlugin {
         crateManager = new CrateManager(this);
         keyManager = new KeyManager(this);
         playerManager = new PlayerManager(this);
-        hologramManager = new HologramManager(this); // Must be initialized before PhysicalCrateManager
+        hologramManager = new HologramManager(this);
         physicalCrateManager = new PhysicalCrateManager(this);
 
-
-        // Register commands and listeners
         getCommand("gacha").setExecutor(new GachaCommand(this));
+        
+        // Register Event Listeners
         getServer().getPluginManager().registerEvents(new MenuListener(), this);
-        getServer().getPluginManager().registerEvents(new CrateListener(), this);
+        // --- THIS IS THE FIX ---
+        // We now correctly pass the plugin instance 'this' to the CrateListener constructor.
+        getServer().getPluginManager().registerEvents(new CrateListener(this), this);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
         
         // Load data for any players already online (e.g., on a /reload)
