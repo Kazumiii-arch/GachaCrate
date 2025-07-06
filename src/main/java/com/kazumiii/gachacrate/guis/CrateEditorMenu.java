@@ -46,8 +46,10 @@ public class CrateEditorMenu extends Menu {
                 displayItem = (reward.getPreviewItem() != null) ? reward.getPreviewItem().clone() : new ItemStack(Material.COMMAND_BLOCK);
             }
 
+            // This is the robust fix: get the meta, or create a new one if it's null.
             ItemMeta meta = displayItem.hasItemMeta() ? displayItem.getItemMeta() : Bukkit.getItemFactory().getItemMeta(displayItem.getType());
             
+            // Create a fresh lore list to avoid modifying the original item's lore.
             List<String> newLore = new ArrayList<>();
             if (meta != null && meta.hasLore()) {
                 newLore.addAll(meta.getLore());
@@ -60,6 +62,7 @@ public class CrateEditorMenu extends Menu {
                 newLore.add(0, "§7Executes: §f/" + reward.getCommand());
             }
             
+            // Add the standardized info footer to the new lore
             newLore.add("");
             newLore.add("§eRarity: " + reward.getRarity().getDisplayName());
             newLore.add("§eChance: §f" + reward.getChance() + "%");
@@ -68,12 +71,15 @@ public class CrateEditorMenu extends Menu {
             newLore.add("§c► Right-Click to Remove");
             meta.setLore(newLore);
             
+            // Embed the unique ID into the item's data container.
             meta.getPersistentDataContainer().set(rewardIdKey, PersistentDataType.STRING, reward.getUniqueId().toString());
             
+            // Apply the fully modified meta back to the item
             displayItem.setItemMeta(meta);
             inventory.addItem(displayItem);
         }
 
+        // --- GUI Control Buttons ---
         ItemStack backButton = new ItemStack(Material.BARRIER);
         ItemMeta backMeta = backButton.getItemMeta();
         backMeta.setDisplayName(ChatColor.RED + "« Back to Settings");
@@ -115,7 +121,7 @@ public class CrateEditorMenu extends Menu {
             return;
         }
 
-        // This is the robust fix: check for the specific remove action (right-click) first.
+        // The robust fix: check for the specific remove action first.
         // Any other click (left, shift-click, etc.) will default to the edit action.
         if (event.isRightClick()) {
             crate.removeReward(targetReward);
