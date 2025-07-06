@@ -1,3 +1,4 @@
+
 plugins {
     java
     id("com.github.johnrengelman.shadow") version "8.1.1"
@@ -18,7 +19,8 @@ dependencies {
     compileOnly("org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT")
 
     // DecentHolograms API. 'compileOnly' is the correct configuration.
-    compileOnly("com.github.decentsoftware-eu:decentholograms:2.8.6")
+    // Changed dependency to the API artifact.
+    compileOnly("eu.decentsoftware.holograms:decentholograms-api:2.8.6")
 }
 
 java {
@@ -37,7 +39,8 @@ tasks {
         dependsOn(shadowJar)
     }
     
-    withType<JavaCompile> {
+    withType<JavaCompile> 
+{
         options.encoding = "UTF-8"
     }
 }
