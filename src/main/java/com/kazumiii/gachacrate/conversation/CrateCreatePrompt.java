@@ -1,7 +1,3 @@
-// ========================================================================
-// File: CrateCreatePrompt.java
-// Location: /src/main/java/com/kazumiii/gachacrate/conversation/CrateCreatePrompt.java
-// ========================================================================
 package com.kazumiii.gachacrate.conversation;
 
 import com.kazumiii.gachacrate.GachaCrate;
