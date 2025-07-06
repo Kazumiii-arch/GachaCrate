@@ -48,8 +48,8 @@ public class MainMenu extends Menu {
         // --- Crate Items ---
         int slot = 10;
         for (Crate crate : GachaCrate.getInstance().getCrateManager().getAllCrates().values()) {
-            if (slot > 43) break; // Prevent overflow if there are too many crates
-            if (slot % 9 == 0 || slot % 9 == 8) slot++; // Skip border slots
+            if (slot > 43) break;
+            if (slot % 9 == 0 || slot % 9 == 8) slot++;
 
             ItemStack crateItem = new ItemStack(Material.CHEST);
             ItemMeta crateMeta = crateItem.getItemMeta();
@@ -59,7 +59,9 @@ public class MainMenu extends Menu {
             lore.add("");
             lore.add(ChatColor.YELLOW + "► Click to manage this crate.");
             crateMeta.setLore(lore);
-            crateItem.setItemMeta(crateItem);
+            // --- THIS IS THE FIX ---
+            // The correct variable 'crateMeta' is now used.
+            crateItem.setItemMeta(crateMeta);
             inventory.setItem(slot, crateItem);
             slot++;
         }
@@ -93,7 +95,6 @@ public class MainMenu extends Menu {
         String itemName = ChatColor.stripColor(clickedItem.getItemMeta().getDisplayName());
 
         if (clickedItem.getType() == Material.NETHER_STAR) {
-            // Start the crate creation conversation
             player.closeInventory();
             ConversationFactory cf = new ConversationFactory(GachaCrate.getInstance());
             Conversation convo = cf.withFirstPrompt(new CrateCreatePrompt()).withLocalEcho(false).buildConversation(player);
@@ -101,12 +102,10 @@ public class MainMenu extends Menu {
         } else if (clickedItem.getType() == Material.CHEST) {
             Crate crate = GachaCrate.getInstance().getCrateManager().getCrate(itemName);
             if (crate != null) {
-                // Open the settings menu for the selected crate
                 new CrateSettingsMenu(player, crate).open();
             }
         } else if (clickedItem.getType() == Material.COMPARATOR) {
-            // This would open a future PluginSettingsMenu
             player.sendMessage(ChatColor.YELLOW + "Global plugin settings coming soon!");
         }
     }
-}
+                }
