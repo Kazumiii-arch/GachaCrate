@@ -1,7 +1,3 @@
-// ========================================================================
-// File: IdleParticleMenu.java
-// Location: /src/main/java/com/kazumiii/gachacrate/animations/IdleParticleMenu.java
-// ========================================================================
 package com.kazumiii.gachacrate.animations;
 
 import com.kazumiii.gachacrate.GachaCrate;
