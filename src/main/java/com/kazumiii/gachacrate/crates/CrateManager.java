@@ -5,10 +5,12 @@
 package com.kazumiii.gachacrate.crates;
 
 import com.kazumiii.gachacrate.GachaCrate;
+import com.kazumiii.gachacrate.animations.AnimationType;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
+
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
@@ -71,6 +73,9 @@ public class CrateManager {
 
         for (Crate crate : crates.values()) {
             String cratePath = "crates." + crate.getName();
+            
+            // Save all crate-level settings
+            cratesConfig.set(cratePath + ".animation-type", crate.getAnimationType().name());
             if (crate.isPityEnabled()) {
                 cratesConfig.set(cratePath + ".pity-system.enabled", true);
                 cratesConfig.set(cratePath + ".pity-system.threshold", crate.getPityThreshold());
@@ -82,6 +87,7 @@ public class CrateManager {
                 cratesConfig.set(cratePath + ".time-limit.end-date", crate.getEndDate().toString());
             }
 
+            // Save all rewards
             ConfigurationSection rewardsSection = cratesConfig.createSection(cratePath + ".rewards");
             for (Reward reward : crate.getRewards()) {
                 String rewardId = reward.getUniqueId().toString();
@@ -116,12 +122,23 @@ public class CrateManager {
             Crate crate = new Crate(crateName);
             String cratePath = "crates." + crateName;
 
+            // Load animation type
+            try {
+                AnimationType animType = AnimationType.valueOf(cratesConfig.getString(cratePath + ".animation-type", "REEL"));
+                crate.setAnimationType(animType);
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("Invalid animation-type for crate '" + crateName + "'. Defaulting to REEL.");
+                crate.setAnimationType(AnimationType.REEL);
+            }
+
+            // Load pity system settings
             if (cratesConfig.getBoolean(cratePath + ".pity-system.enabled", false)) {
                 crate.setPityEnabled(true);
                 crate.setPityThreshold(cratesConfig.getInt(cratePath + ".pity-system.threshold", 100));
                 crate.setPityRarityMinimum(cratesConfig.getString(cratePath + ".pity-system.pity-rarity-minimum"));
             }
 
+            // Load time limit settings
             if (cratesConfig.getBoolean(cratePath + ".time-limit.enabled", false)) {
                 try {
                     LocalDate start = LocalDate.parse(cratesConfig.getString(cratePath + ".time-limit.start-date"));
@@ -134,6 +151,7 @@ public class CrateManager {
                 }
             }
             
+            // Load rewards
             if (cratesSection.contains(crateName + ".rewards")) {
                 ConfigurationSection rewardsSection = cratesSection.getConfigurationSection(crateName + ".rewards");
                 for (String rewardId : rewardsSection.getKeys(false)) {
@@ -165,4 +183,5 @@ public class CrateManager {
         }
         plugin.getLogger().info("Loaded " + crates.size() + " crates from config.");
     }
-}
+                                   }
+                                                           
