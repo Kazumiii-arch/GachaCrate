@@ -1,7 +1,3 @@
-// ========================================================================
-// File: ChancePrompt.java
-// Location: /src/main/java/com/kazumiii/gachacrate/conversation/ChancePrompt.java
-// ========================================================================
 package com.kazumiii.gachacrate.conversation;
 
 import com.kazumiii.gachacrate.GachaCrate;
@@ -19,12 +15,7 @@ public class ChancePrompt extends StringPrompt {
     private final Reward reward;
     private final Menu parentMenu;
 
-    /**
-     * A reusable prompt for getting a new chance value from a player.
-     * @param crate The crate being modified.
-     * @param reward The reward being edited.
-     * @param parentMenu The menu to re-open after the conversation.
-     */
+
     public ChancePrompt(Crate crate, Reward reward, Menu parentMenu) {
         this.crate = crate;
         this.reward = reward;
