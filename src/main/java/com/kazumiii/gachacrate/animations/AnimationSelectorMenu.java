@@ -1,7 +1,3 @@
-// ========================================================================
-// File: AnimationSelectorMenu.java
-// Location: /src/main/java/com/kazumiii/gachacrate/animations/AnimationSelectorMenu.java
-// ========================================================================
 package com.kazumiii.gachacrate.animations;
 
 import com.kazumiii.gachacrate.GachaCrate;
@@ -38,7 +34,7 @@ public class AnimationSelectorMenu extends Menu {
             ItemMeta meta = item.getItemMeta();
             meta.setDisplayName(ChatColor.AQUA + type.getDisplayName());
             
-            // Add a glow if it's the currently selected animation
+            
             if (crate.getAnimationType() == type) {
                 meta.addEnchant(Enchantment.LUCK, 1, false);
                 meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
@@ -76,9 +72,7 @@ public class AnimationSelectorMenu extends Menu {
             crate.setAnimationType(selectedType);
             GachaCrate.getInstance().getCrateManager().saveCrates();
             player.sendMessage(ChatColor.GREEN + "Animation style set to " + selectedType.getDisplayName() + "!");
-            open(); // Re-open to show the change
+            open();
         } catch (Exception e) {
-            // Clicked on something that wasn't a valid animation item
-        }
     }
 }
