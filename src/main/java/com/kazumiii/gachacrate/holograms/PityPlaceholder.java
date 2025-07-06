@@ -9,7 +9,7 @@ import com.kazumiii.gachacrate.crates.Crate;
 import com.kazumiii.gachacrate.player.PlayerData;
 import eu.decentsoftware.holograms.api.holograms.Hologram;
 // This is the corrected import path for the DecentHolograms API.
-import eu.decentsoftware.holograms.api.placeholder.PlaceholderExpansion;
+import eu.decentsoftware.holograms.api.placeholders.PlaceholderExpansion;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
