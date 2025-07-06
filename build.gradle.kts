@@ -9,18 +9,21 @@ version = "1.4.0" // Version bump for this final fix
 repositories {
     mavenCentral()
     maven { url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/") }
-    maven { url = uri("https://jitpack.io") }
-    // ADDED: Official DecentHolograms repositories
-    maven { url = uri("https://oss.sonatype.org/content/repositories/snapshots") }
-    maven { url = uri("https://repo.codemc.io/repository/maven-public/") }
-    maven { url = uri("https://repo.extendedclip.com/content/repositories/placeholderapi/") } // Also added as it's used by DH
+    // Using JitPack for DecentHolograms as per your finding
+    maven {
+        id = "jitpack"
+        url = uri("https://jitpack.io/")
+    }
+        maven { url = uri("https://repo.extendedclip.com/content/repositories/placeholderapi/") } // Keep this if you use PlaceholderAPI
 }
 
 dependencies {
     // Spigot API for Minecraft 1.20.1.
     compileOnly("org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT")
 
-    compileOnly("eu.decentsoftware.holograms:decentholograms-api:2.9.4")
+    // DecentHolograms dependency from JitPack as you found.
+    // Note: This is the main plugin artifact, not necessarily a separate API artifact.
+    compileOnly("com.github.decentsoftware-eu:decentholograms:2.9.3")
 }
 
 java {
