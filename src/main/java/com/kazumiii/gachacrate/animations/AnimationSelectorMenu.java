@@ -74,5 +74,7 @@ public class AnimationSelectorMenu extends Menu {
             player.sendMessage(ChatColor.GREEN + "Animation style set to " + selectedType.getDisplayName() + "!");
             open();
         } catch (Exception e) {
+            // Added the missing closing curly brace for the catch block
+        }
     }
 }
