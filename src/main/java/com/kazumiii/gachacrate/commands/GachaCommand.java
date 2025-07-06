@@ -1,7 +1,3 @@
-// ========================================================================
-// File: GachaCommand.java
-// Location: /src/main/java/com/kazumiii/gachacrate/commands/GachaCommand.java
-// ========================================================================
 package com.kazumiii.gachacrate.commands;
 
 import com.kazumiii.gachacrate.GachaCrate;
