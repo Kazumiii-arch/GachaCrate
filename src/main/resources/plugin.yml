@@ -1,11 +1,11 @@
 name: GachaCrate
-version: '1.3.1'
+version: '1.4.0'
 main: com.kazumiii.gachacrate.GachaCrate
 api-version: '1.20'
 author: Kazumiii
 description: A Minecraft Survival server gacha crate plugin with full in-game editing.
 
-softdepend: [DecentHolograms]
+softdepend: [DecentHolograms, PlaceholderAPI]
 
 commands:
   gacha:
