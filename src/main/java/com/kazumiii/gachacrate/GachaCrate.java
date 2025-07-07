@@ -1,3 +1,7 @@
+// ========================================================================
+// File: GachaCrate.java
+// Location: /src/main/java/com/kazumiii/gachacrate/GachaCrate.java
+// ========================================================================
 package com.kazumiii.gachacrate;
 
 import com.kazumiii.gachacrate.animations.IdleParticleTask;
@@ -30,7 +34,6 @@ public final class GachaCrate extends JavaPlugin {
     public void onEnable() {
         instance = this;
 
-        // Load config and initialize all managers
         getConfig().options().copyDefaults(true);
         saveDefaultConfig();
         
@@ -42,22 +45,19 @@ public final class GachaCrate extends JavaPlugin {
         physicalCrateManager = new PhysicalCrateManager(this);
         crateOpener = new CrateOpener();
 
-        // Register commands and event listeners
         getCommand("gacha").setExecutor(new GachaCommand(this));
         getServer().getPluginManager().registerEvents(new MenuListener(), this);
         getServer().getPluginManager().registerEvents(new CrateListener(this), this);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
         
-        // Register custom placeholder with DecentHolograms if it exists
-        if (getServer().getPluginManager().getPlugin("DecentHolograms") != null) {
+        // --- THIS IS THE CHANGE ---
+        // We now check for PlaceholderAPI and register your expansion with it.
+        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new PityPlaceholder(this).register();
-            getLogger().info("Registered Pity Hologram Placeholder.");
+            getLogger().info("Registered GachaCrate placeholders with PlaceholderAPI.");
         }
         
-        // Load data for any players already online (e.g., on a /reload)
         getServer().getOnlinePlayers().forEach(player -> playerManager.loadPlayerData(player));
-
-        // Start the idle particle effect task asynchronously for performance
         new IdleParticleTask(this).runTaskTimerAsynchronously(this, 0L, 2L);
 
         getLogger().info("========================================");
@@ -67,16 +67,13 @@ public final class GachaCrate extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Save data for any players online when the server stops
         getServer().getOnlinePlayers().forEach(player -> playerManager.savePlayerData(player));
-        
         if (crateManager != null) {
             crateManager.saveCrates();
         }
         getLogger().info("Kazumiii Gacha Crate has been disabled.");
     }
 
-    // --- Getters for Managers ---
     public CrateManager getCrateManager() { return crateManager; }
     public KeyManager getKeyManager() { return keyManager; }
     public RarityManager getRarityManager() { return rarityManager; }
