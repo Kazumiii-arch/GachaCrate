@@ -1,13 +1,9 @@
-// ========================================================================
-// File: RewardType.java
-// Location: /src/main/java/com/kazumiii/gachacrate/crates/RewardType.java
-// ========================================================================
-package com.kazumiii.gachacrate.crates;
+package com.kazumiii.gachacrate.crate;
 
-/**
- * Defines the type of a reward, either an ITEM or a COMMAND.
- */
 public enum RewardType {
-    ITEM,
-    COMMAND
+    ITEM,       // Gives an ItemStack
+    MONEY,      // Gives money (requires vault / eco give command)
+    COMMAND,    // Executes commands
+    BUNDLE,     // A bundle of multiple rewards
+    NOTHING     // For filler rewards in animation or failed rolls
 }
