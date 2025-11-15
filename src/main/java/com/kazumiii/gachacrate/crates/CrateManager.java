@@ -1,213 +1,141 @@
-// ========================================================================
-// File: CrateManager.java
-// Location: /src/main/java/com/kazumiii/gachacrate/crates/CrateManager.java
-// ========================================================================
-package com.kazumiii.gachacrate.crates;
+package com.kazumiii.gachacrate.crate;
 
 import com.kazumiii.gachacrate.GachaCrate;
-import com.kazumiii.gachacrate.animations.AnimationType;
-import org.bukkit.Particle;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.inventory.ItemStack;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
 
-import java.io.File;
-import java.io.IOException;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class CrateManager {
 
     private final GachaCrate plugin;
+
+    // Loaded crates
     private final Map<String, Crate> crates = new HashMap<>();
-    private File cratesFile;
-    private FileConfiguration cratesConfig;
+
+    // Physical crate blocks mapped by location
+    private final Map<Location, String> crateBlocks = new HashMap<>();
 
     public CrateManager(GachaCrate plugin) {
         this.plugin = plugin;
-        setupConfigurationFile();
-        loadCrates();
     }
-    
-    private void setupConfigurationFile() {
-        if (!plugin.getDataFolder().exists()) plugin.getDataFolder().mkdir();
-        cratesFile = new File(plugin.getDataFolder(), "crates.yml");
-        if (!cratesFile.exists()) {
-            try {
-                cratesFile.createNewFile();
-            } catch (IOException e) {
-                plugin.getLogger().severe("Could not create crates.yml file!");
-                e.printStackTrace();
-            }
+
+    // Called by AsyncStorage after loading
+    public void setLoadedCrates(Map<String, Crate> loaded) {
+        crates.clear();
+        crates.putAll(loaded);
+    }
+
+    // ------------------------------------------------------------
+    // CRATE REGISTRATION
+    // ------------------------------------------------------------
+    public void registerCrate(Crate crate) {
+        crates.put(crate.getId(), crate);
+    }
+
+    public boolean crateExists(String id) {
+        return crates.containsKey(id);
+    }
+
+    public Crate getCrate(String id) {
+        return crates.get(id);
+    }
+
+    public Map<String, Crate> getCrates() {
+        return crates;
+    }
+
+    // ------------------------------------------------------------
+    // CRATE REMOVAL
+    // ------------------------------------------------------------
+    public boolean deleteCrate(String id) {
+        return crates.remove(id) != null;
+    }
+
+    // ------------------------------------------------------------
+    // REWARD ROLLING ENGINE
+    // ------------------------------------------------------------
+    public Reward rollReward(Crate crate) {
+        List<Reward> rewards = crate.getRewards();
+        if (rewards.isEmpty()) return null;
+
+        // Weighted random
+        double total = 0;
+        for (Reward r : rewards) total += r.getChance();
+
+        double random = Math.random() * total;
+        double current = 0;
+
+        for (Reward r : rewards) {
+            current += r.getChance();
+            if (current >= random) return r;
         }
-        cratesConfig = YamlConfiguration.loadConfiguration(cratesFile);
+
+        return rewards.get(rewards.size() - 1); // fallback
     }
 
-    public void createCrate(String name) {
-        Crate crate = new Crate(name);
-        crates.put(name.toLowerCase(), crate);
-        cratesConfig.createSection("crates." + name);
-        saveCrates();
+    // ------------------------------------------------------------
+    // PHYSICAL CRATE BLOCKS
+    // ------------------------------------------------------------
+    public void registerCrateBlock(Location loc, String crateId) {
+        crateBlocks.put(loc, crateId);
     }
 
-    public Crate getCrate(String name) {
-        return crates.get(name.toLowerCase());
-    }
-    
-    public Map<String, Crate> getAllCrates() {
-        return Collections.unmodifiableMap(crates);
+    public void removeCrateBlock(Location loc) {
+        crateBlocks.remove(loc);
     }
 
-    public void deleteCrate(String crateName) {
-        crates.remove(crateName.toLowerCase());
-        cratesConfig.set("crates." + crateName, null);
-        saveCrates();
+    public boolean isCrateBlock(Block block) {
+        return block != null && crateBlocks.containsKey(block.getLocation());
     }
 
-    public void saveCrates() {
-        cratesConfig.set("crates", null);
+    public String getCrateIdAtBlock(Block block) {
+        return crateBlocks.get(block.getLocation());
+    }
 
-        for (Crate crate : crates.values()) {
-            String cratePath = "crates." + crate.getName();
-            
-            // Save all crate-level settings
-            cratesConfig.set(cratePath + ".opening-mode", crate.getOpeningMode().name());
-            cratesConfig.set(cratePath + ".animation-type", crate.getAnimationType().name());
-            
-            if (crate.getIdleParticle() != null) {
-                cratesConfig.set(cratePath + ".idle-particle", crate.getIdleParticle().name());
-            } else {
-                cratesConfig.set(cratePath + ".idle-particle", null);
-            }
+    public Map<Location, String> getCrateBlocks() {
+        return crateBlocks;
+    }
 
-            if (crate.isPityEnabled()) {
-                cratesConfig.set(cratePath + ".pity-system.enabled", true);
-                cratesConfig.set(cratePath + ".pity-system.threshold", crate.getPityThreshold());
-                cratesConfig.set(cratePath + ".pity-system.pity-rarity-minimum", crate.getPityRarityMinimum());
-            }
-            if (crate.isTimeLimitEnabled()) {
-                cratesConfig.set(cratePath + ".time-limit.enabled", true);
-                cratesConfig.set(cratePath + ".time-limit.start-date", crate.getStartDate().toString());
-                cratesConfig.set(cratePath + ".time-limit.end-date", crate.getEndDate().toString());
-            }
+    // ------------------------------------------------------------
+    // EXPIRATION CHECK (SEASONAL CRATES)
+    // ------------------------------------------------------------
+    public boolean isCrateExpired(Crate crate) {
+        if (crate.getExpirationDate() == null) return false;
+        return LocalDate.now().isAfter(crate.getExpirationDate());
+    }
 
-            // Save all rewards
-            ConfigurationSection rewardsSection = cratesConfig.createSection(cratePath + ".rewards");
-            for (Reward reward : crate.getRewards()) {
-                String rewardId = reward.getUniqueId().toString();
-                String rewardPath = rewardId + ".";
-                
-                rewardsSection.set(rewardPath + "type", reward.getType().name());
-                rewardsSection.set(rewardPath + "rarity", reward.getRarity().getId());
-                rewardsSection.set(rewardPath + "chance", reward.getChance());
-
-                if (reward.getType() == RewardType.ITEM) {
-                    rewardsSection.set(rewardPath + "item", reward.getItem());
-                } else {
-                    rewardsSection.set(rewardPath + "command", reward.getCommand());
-                    if (reward.getPreviewItem() != null) {
-                        rewardsSection.set(rewardPath + "preview-item", reward.getPreviewItem());
-                    }
-                }
-            }
+    // ------------------------------------------------------------
+    // OPEN CRATE (Handles animations elsewhere)
+    // ------------------------------------------------------------
+    public void openCrate(Player player, String crateId) {
+        Crate crate = getCrate(crateId);
+        if (crate == null) {
+            player.sendMessage("§cThis crate no longer exists!");
+            return;
         }
-        try {
-            cratesConfig.save(cratesFile);
-        } catch (IOException e) {
-            plugin.getLogger().severe("Could not save crates to crates.yml!");
-            e.printStackTrace();
+
+        if (isCrateExpired(crate)) {
+            player.sendMessage("§eThis event crate has expired!");
+            return;
         }
+
+        // Delegate opening to animation system / GUI system
+        plugin.getGuiManager().openCrateAnimation(player, crate);
     }
 
-    public void loadCrates() {
-        if (!cratesConfig.contains("crates")) return;
-        ConfigurationSection cratesSection = cratesConfig.getConfigurationSection("crates");
-        for (String crateName : cratesSection.getKeys(false)) {
-            Crate crate = new Crate(crateName);
-            String cratePath = "crates." + crateName;
-
-            // Load opening mode
-            try {
-                OpeningMode mode = OpeningMode.valueOf(cratesConfig.getString(cratePath + ".opening-mode", "PHYSICAL_BLOCKS"));
-                crate.setOpeningMode(mode);
-            } catch (IllegalArgumentException e) {
-                crate.setOpeningMode(OpeningMode.PHYSICAL_BLOCKS);
-            }
-
-            // Load animation type
-            try {
-                AnimationType animType = AnimationType.valueOf(cratesConfig.getString(cratePath + ".animation-type", "REEL"));
-                crate.setAnimationType(animType);
-            } catch (IllegalArgumentException e) {
-                crate.setAnimationType(AnimationType.REEL);
-            }
-
-            // Load idle particle
-            if (cratesConfig.contains(cratePath + ".idle-particle")) {
-                try {
-                    Particle particle = Particle.valueOf(cratesConfig.getString(cratePath + ".idle-particle"));
-                    crate.setIdleParticle(particle);
-                } catch (IllegalArgumentException e) {
-                    plugin.getLogger().warning("Invalid idle-particle for crate '" + crateName + "'.");
-                }
-            }
-
-            // Load pity system settings
-            if (cratesConfig.getBoolean(cratePath + ".pity-system.enabled", false)) {
-                crate.setPityEnabled(true);
-                crate.setPityThreshold(cratesConfig.getInt(cratePath + ".pity-system.threshold", 100));
-                crate.setPityRarityMinimum(cratesConfig.getString(cratePath + ".pity-system.pity-rarity-minimum"));
-            }
-
-            // Load time limit settings
-            if (cratesConfig.getBoolean(cratePath + ".time-limit.enabled", false)) {
-                try {
-                    LocalDate start = LocalDate.parse(cratesConfig.getString(cratePath + ".time-limit.start-date"));
-                    LocalDate end = LocalDate.parse(cratesConfig.getString(cratePath + ".time-limit.end-date"));
-                    crate.setTimeLimitEnabled(true);
-                    crate.setStartDate(start);
-                    crate.setEndDate(end);
-                } catch (DateTimeParseException | NullPointerException e) {
-                    plugin.getLogger().warning("Invalid date format for crate '" + crateName + "'. Time limit disabled. Use YYYY-MM-DD.");
-                }
-            }
-            
-            // Load rewards
-            if (cratesSection.contains(crateName + ".rewards")) {
-                ConfigurationSection rewardsSection = cratesSection.getConfigurationSection(crateName + ".rewards");
-                for (String rewardId : rewardsSection.getKeys(false)) {
-                    UUID uniqueId = UUID.fromString(rewardId);
-                    String rewardPath = rewardId + ".";
-                    
-                    RewardType type = RewardType.valueOf(rewardsSection.getString(rewardPath + "type", "ITEM"));
-                    Rarity rarity = plugin.getRarityManager().getRarity(rewardsSection.getString(rewardPath + "rarity"));
-                    double chance = rewardsSection.getDouble(rewardPath + "chance");
-
-                    if (rarity == null) {
-                        plugin.getLogger().warning("Could not load a reward in crate '" + crateName + "' because its rarity is invalid. Skipping.");
-                        continue;
-                    }
-
-                    Reward reward;
-                    if (type == RewardType.ITEM) {
-                        ItemStack item = rewardsSection.getItemStack(rewardPath + "item");
-                        reward = new Reward(uniqueId, type, item, null, null, rarity, chance);
-                    } else {
-                        String command = rewardsSection.getString(rewardPath + "command");
-                        ItemStack previewItem = rewardsSection.getItemStack(rewardPath + "preview-item");
-                        reward = new Reward(uniqueId, type, null, command, previewItem, rarity, chance);
-                    }
-                    crate.addReward(reward);
-                }
-            }
-            crates.put(crateName.toLowerCase(), crate);
-        }
-        plugin.getLogger().info("Loaded " + crates.size() + " crates from config.");
+    // ------------------------------------------------------------
+    // SAVE WRAPPERS
+    // ------------------------------------------------------------
+    public void saveAll() {
+        plugin.getAsyncStorage().saveAllCrates();
     }
-        }
-        
+
+    public void saveAllSync() {
+        plugin.getAsyncStorage().saveAllCratesSync();
+    }
+}
