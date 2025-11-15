@@ -1,38 +1,51 @@
-// ========================================================================
-// File: Rarity.java
-// Location: /src/main/java/com/kazumiii/gachacrate/crates/Rarity.java
-// ========================================================================
-package com.kazumiii.gachacrate.crates;
+package com.kazumiii.gachacrate.crate;
 
-import org.bukkit.ChatColor;
+/**
+ * Rarity levels for rewards.
+ * Each rarity has:
+ * - Color
+ * - Weight multiplier
+ * - Glow flag
+ * - Display name
+ */
+public enum Rarity {
 
-public class Rarity {
-    private final String id;
+    COMMON("§7", "Common", 1.0, false),
+    UNCOMMON("§a", "Uncommon", 1.2, false),
+    RARE("§9", "Rare", 1.5, false),
+    EPIC("§5", "Epic", 2.0, true),
+    LEGENDARY("§6", "Legendary", 3.0, true),
+    MYTHIC("§d", "Mythic", 5.0, true);
+
+    private final String color;
     private final String displayName;
-    private final ChatColor color;
-    private final int order;
+    private final double weightMultiplier;
+    private final boolean glow;
 
-    public Rarity(String id, String displayName, ChatColor color, int order) {
-        this.id = id;
-        this.displayName = displayName;
+    Rarity(String color, String displayName, double weightMultiplier, boolean glow) {
         this.color = color;
-        this.order = order;
+        this.displayName = displayName;
+        this.weightMultiplier = weightMultiplier;
+        this.glow = glow;
     }
 
-    public String getId() {
-        return id;
-    }
-
-    public String getDisplayName() {
-        // Translate color codes in the display name (e.g., &6Mythic -> §6Mythic)
-        return ChatColor.translateAlternateColorCodes('&', displayName);
-    }
-
-    public ChatColor getColor() {
+    public String getColor() {
         return color;
     }
 
-    public int getOrder() {
-        return order;
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public double getWeightMultiplier() {
+        return weightMultiplier;
+    }
+
+    public boolean isGlow() {
+        return glow;
+    }
+
+    public String getStyledName() {
+        return color + displayName;
     }
 }
