@@ -10,16 +10,21 @@ import org.bukkit.Particle;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
  * A gacha crate: a named collection of rewards plus all of its configurable
  * settings (opening mode, animation, pity system, time limit, idle particles).
- * Persisted by CrateManager in crates.yml.
+ * Persisted by CrateManager in crates/&lt;name&gt;.yml.
  */
 public class Crate {
 
+    /** Internal id / registry key. Always lowercase so lookups are case-insensitive. */
     private final String name;
+
+    /** Pretty name shown in GUIs, keys, holograms and broadcasts. */
+    private String displayName;
 
     // Rewards contained in this crate
     private final List<Reward> rewards = new ArrayList<>();
@@ -44,11 +49,20 @@ public class Crate {
     private LocalDate endDate;
 
     public Crate(String name) {
-        this.name = name;
+        this.name = name == null ? "crate" : name.toLowerCase(Locale.ROOT);
+        this.displayName = name;
     }
 
     public String getName() {
         return name;
+    }
+
+    public String getDisplayName() {
+        return displayName != null ? displayName : name;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
 
     // ------------------------------------------------------------------
