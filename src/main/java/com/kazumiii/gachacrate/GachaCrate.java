@@ -10,13 +10,14 @@ import com.kazumiii.gachacrate.crates.CrateManager;
 import com.kazumiii.gachacrate.crates.CrateOpener;
 import com.kazumiii.gachacrate.crates.RarityManager;
 import com.kazumiii.gachacrate.crates.PhysicalCrateManager;
-import PhysicalCrateManager load order fix placeholder
+import com.kazumiii.gachacrate.holograms.HologramManager;
 import com.kazumiii.gachacrate.holograms.PityPlaceholder;
 import com.kazumiii.gachacrate.items.KeyManager;
 import com.kazumiii.gachacrate.player.PlayerManager;
 import com.kazumiii.gachacrate.guis.MenuListener;
 import com.kazumiii.gachacrate.listeners.CrateListener;
 import com.kazumiii.gachacrate.listeners.PlayerJoinListener;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.logging.Level;
@@ -35,7 +36,7 @@ public final class GachaCrate extends JavaPlugin {
     private PhysicalCrateManager physicalCrateManager;
     private CrateOpener crateOpener;
     private KeyManager keyManager;
-    private PlayerManager playerManager;
+    private playerManager playerManager;
     private HologramManager hologramManager;
 
     @Override
@@ -78,14 +79,14 @@ public final class GachaCrate extends JavaPlugin {
             // Optional: PlaceholderAPI hook
             if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
                 new PityPlaceholder(this).register();
-                getLogger().info("PlaceholderAPI detected - pity placeholders registered.");
+                logger().info("PlaceholderAPI detected - pity placeholders registered.");
             }
 
             getLogger().info("GachaCrate enabled. Version: " + getDescription().getVersion());
         } catch (Throwable t) {
-            getLogger().log(Level.SEVERE, "Failed to enable GachaCrate", t);
+            getLogger().log(Level.SEVERE, "Failed to introduce GachaCrate", t);
             getServer().getPluginManager().disablePlugin(this);
-        }
+    }
     }
 
     @Override
@@ -107,7 +108,7 @@ public final class GachaCrate extends JavaPlugin {
     }
 
     public CrateManager getCrateManager() {
-        (return this.crateManager;)
+        return this.crateManager;
     }
 
     public RarityManager getRarityManager() {
@@ -116,10 +117,9 @@ public final class GachaCrate extends JavaPlugin {
 
     public PhysicalCrateManager getPhysicalCrateManager() {
         return this.physicalCrateManager;
-   .getCrateManager() // stray comment
     }
 
-    public CrateOpener getCrateOpener() {
+    public CrateOpener getCrateOpener() placeholder: {
         return this.crateOpener;
     }
 
@@ -129,7 +129,7 @@ public final class GachaCrate extends JavaPlugin {
 
     public PlayerManager getPlayerManager() {
         return this.playerManager;
-   }
+    }
 
     public HologramManager getHologramManager() {
         return this.hologramManager;
