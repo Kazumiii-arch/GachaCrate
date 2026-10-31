@@ -1,134 +1,62 @@
-package com.kazumiii.gachacrate.crate;
+// ========================================================================
+// File: Reward.java
+// Location: /src/main/java/com/kazumiii/gachacrate/crates/Reward.java
+// ========================================================================
+package com.kazumiii.gachacrate.crates;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Sound;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.UUID;
 
 /**
- * Represents a reward inside a crate.
- * Supports item rewards, commands, money, bundle rewards, rarity, glow effects,
- * custom lore, custom display name, broadcast announcements, and jackpots.
+ * A reward inside a crate. Supports ITEM and COMMAND reward types,
+ * matching the GUI editor flows (AddItemMenu, CommandPrompt, RewardEditorMenu).
  */
 public class Reward {
 
-    // -----------------------------
-    // Core Reward Settings
-    // -----------------------------
-    private String id;
+    private final UUID uniqueId = UUID.randomUUID();
+
     private RewardType type = RewardType.ITEM;
 
     // Item reward
     private ItemStack item;
 
-    // Command reward list
-    private List<String> commands = new ArrayList<>();
+    // Command reward (single command string, as entered via CommandPrompt)
+    private String command;
 
-    // Money reward
-    private double money = 0;
+    // Icon shown in GUIs when the reward is not an ITEM type
+    private ItemStack previewItem;
 
-    // Bundle
-    private List<Reward> bundle = new ArrayList<>();
+    // Drop chance (percentage weight)
+    private double chance = 100.0;
 
-    // Chance
-    private double chance = 1.0;
+    // Rarity tier id, e.g. "COMMON". Resolved via RarityManager when needed.
+    private String rarityId;
 
-    // Rarity
-    private Rarity rarity = Rarity.COMMON;
-
-    // -----------------------------
-    // Visual Effects (Premium)
-    // -----------------------------
-    private boolean glow = false;
-    private boolean broadcast = false;
-    private boolean firework = false;
-    private boolean jackpot = false;
-
-    private String title = null;
-    private String soundKey = "reward-win";
-
-    private String displayName = null; // reward name shown in GUIs
-    private List<String> lore = new ArrayList<>();
-
-    // -----------------------------
+    // -------------------------------------------------------------------
     // Constructors
-    // -----------------------------
+    // -------------------------------------------------------------------
     public Reward() {}
 
-    public Reward(String id, double chance, Rarity rarity) {
-        this.id = id;
+    /** Item reward. */
+    public Reward(ItemStack item, Rarity rarity, double chance) {
+        this.type = RewardType.ITEM;
+        this.item = item;
+        this.rarityId = rarity != null ? rarity.getId() : "COMMON";
         this.chance = chance;
-        this.rarity = rarity;
     }
 
-    // -----------------------------
-    // Apply the reward to a player
-    // -----------------------------
-    public void apply(Player player) {
-
-        switch (type) {
-            case ITEM:
-                if (item != null) {
-                    player.getInventory().addItem(item.clone());
-                }
-                break;
-
-            case COMMAND:
-                for (String cmd : commands) {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                            cmd.replace("%player%", player.getName()));
-                }
-                break;
-
-            case MONEY:
-                if (money > 0) {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                            "eco give " + player.getName() + " " + money);
-                }
-                break;
-
-            case BUNDLE:
-                for (Reward r : bundle) {
-                    r.apply(player);
-                }
-                break;
-
-            case NOTHING:
-                // no reward
-                break;
-        }
-
-        // Effects
-        if (firework) {
-            player.getWorld().spawn(player.getLocation(), org.bukkit.entity.Firework.class);
-        }
-
-        if (title != null) {
-            player.sendTitle(title, "", 10, 40, 10);
-        }
-
-        // Play win sound
-        if (soundKey != null) {
-            try {
-                Sound sound = Sound.valueOf(soundKey.toUpperCase());
-                player.playSound(player.getLocation(), sound, 1f, 1f);
-            } catch (IllegalArgumentException ignored) {}
-        }
-
-        // Broadcast if enabled
-        if (broadcast) {
-            Bukkit.broadcastMessage("§e" + player.getName() + " §7won §6" +
-                    getDisplayName() + "§7 from a crate!");
-        }
+    /** Command reward. The command is run from console with {player} replaced. */
+    public Reward(String command, Rarity rarity, double chance) {
+        this.type = RewardType.COMMAND;
+        this.command = command;
+        this.rarityId = rarity != null ? rarity.getId() : "COMMON";
+        this.chance = chance;
     }
 
-    // -----------------------------
-    // Getters & Setters
-    // -----------------------------
-
+    // -------------------------------------------------------------------
+    // Type
+    // -------------------------------------------------------------------
     public RewardType getType() {
         return type;
     }
@@ -137,6 +65,16 @@ public class Reward {
         this.type = type;
     }
 
+    // -------------------------------------------------------------------
+    // Unique ID (used by CrateEditorMenu to identify rewards in the GUI)
+    // -------------------------------------------------------------------
+    public UUID getUniqueId() {
+        return uniqueId;
+    }
+
+    // -------------------------------------------------------------------
+    // Item
+    // -------------------------------------------------------------------
     public ItemStack getItem() {
         return item;
     }
@@ -145,38 +83,31 @@ public class Reward {
         this.item = item;
     }
 
-    public List<String> getCommands() {
-        return commands;
+    // -------------------------------------------------------------------
+    // Command
+    // -------------------------------------------------------------------
+    public String getCommand() {
+        return command;
     }
 
-    public void setCommands(List<String> commands) {
-        this.commands = commands;
+    public void setCommand(String command) {
+        this.command = command;
     }
 
-    public void addCommand(String command) {
-        this.commands.add(command);
+    // -------------------------------------------------------------------
+    // Preview item (icon for non-ITEM rewards in GUIs)
+    // -------------------------------------------------------------------
+    public ItemStack getPreviewItem() {
+        return previewItem;
     }
 
-    public double getMoney() {
-        return money;
+    public void setPreviewItem(ItemStack previewItem) {
+        this.previewItem = previewItem;
     }
 
-    public void setMoney(double money) {
-        this.money = money;
-    }
-
-    public List<Reward> getBundle() {
-        return bundle;
-    }
-
-    public void setBundle(List<Reward> bundle) {
-        this.bundle = bundle;
-    }
-
-    public void addToBundle(Reward reward) {
-        this.bundle.add(reward);
-    }
-
+    // -------------------------------------------------------------------
+    // Chance
+    // -------------------------------------------------------------------
     public double getChance() {
         return chance;
     }
@@ -185,83 +116,27 @@ public class Reward {
         this.chance = chance;
     }
 
+    // -------------------------------------------------------------------
+    // Rarity
+    // -------------------------------------------------------------------
+    public String getRarityId() {
+        return rarityId;
+    }
+
+    public void setRarityId(String rarityId) {
+        this.rarityId = rarityId;
+    }
+
+    /**
+     * Resolves the live Rarity object for this reward via the plugin's
+     * RarityManager. Returns null if the rarity id no longer exists.
+     */
     public Rarity getRarity() {
-        return rarity;
+        return com.kazumiii.gachacrate.GachaCrate.getInstance()
+                .getRarityManager().getRarity(rarityId);
     }
 
     public void setRarity(Rarity rarity) {
-        this.rarity = rarity;
+        this.rarityId = rarity != null ? rarity.getId() : null;
     }
-
-    public boolean isGlow() {
-        return glow;
-    }
-
-    public void setGlow(boolean glow) {
-        this.glow = glow;
-    }
-
-    public boolean isBroadcast() {
-        return broadcast;
-    }
-
-    public void setBroadcast(boolean broadcast) {
-        this.broadcast = broadcast;
-    }
-
-    public boolean isFirework() {
-        return firework;
-    }
-
-    public void setFirework(boolean firework) {
-        this.firework = firework;
-    }
-
-    public boolean isJackpot() {
-        return jackpot;
-    }
-
-    public void setJackpot(boolean jackpot) {
-        this.jackpot = jackpot;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getSoundKey() {
-        return soundKey;
-    }
-
-    public void setSoundKey(String soundKey) {
-        this.soundKey = soundKey;
-    }
-
-    public String getDisplayName() {
-        return displayName == null ? id : displayName;
-    }
-
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
-    }
-
-    public List<String> getLore() {
-        return lore;
-    }
-
-    public void setLore(List<String> lore) {
-        this.lore = lore;
-    }
-
-    public void addLore(String line) {
-        this.lore.add(line);
-    }
-
-    public String getId() {
-        return id;
-    }
-    }
+}
