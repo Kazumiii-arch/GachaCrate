@@ -17,7 +17,7 @@ import com.kazumiii.gachacrate.items.KeyManager;
 import com.kazumiii.gachacrate.listeners.CrateListener;
 import com.kazumiii.gachacrate.listeners.PlayerJoinListener;
 import com.kazumiii.gachacrate.player.PlayerManager;
-import org.bukkit.command.PluginCommand;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.logging.Level;
@@ -47,9 +47,9 @@ public final class GachaCrate extends JavaPlugin {
         try {
             this.rarityManager = new RarityManager(this);
             this.keyManager = new KeyManager(this);
-            this.crateManager = new CrateManager(this);
             this.playerManager = new PlayerManager(this);
             this.hologramManager = new HologramManager(this);
+            this.crateManager = new CrateManager(this);
 
             // Load all saved crates from disk
             this.crateManager.loadCrates();
@@ -60,10 +60,14 @@ public final class GachaCrate extends JavaPlugin {
             // Crate opener used by animation flows
             this.crateOpener = new CrateOpener();
 
+            // Load player data for anyone already online (handles /reload)
+            Bukkit.getOnlinePlayers().forEach(p -> playerManager.loadPlayerData(p));
+
             // Register command executor
-            PluginCommand gachaCommand = getCommand("gacha");
-            if (gachaCommand != null) {
-                gachaCommand.setExecutor(new GachaCommand(this));
+            if (getCommand("gacha") != null) {
+                getCommand("gacha").setExecutor(new GachaCommand(this));
+            } else {
+                getLogger().severe("'gacha' command is missing from plugin.yml — commands disabled.");
             }
 
             // Register listeners
@@ -90,11 +94,11 @@ public final class GachaCrate extends JavaPlugin {
     @Override
     public void onDisable() {
         try {
-            if (crateManager != null) {
-                crateManager.saveCrates();
-            }
             if (playerManager != null) {
                 getServer().getOnlinePlayers().forEach(p -> playerManager.savePlayerData(p));
+            }
+            if (crateManager != null) {
+                crateManager.saveCrates();
             }
             if (hologramManager != null) {
                 hologramManager.removeAllHolograms();
