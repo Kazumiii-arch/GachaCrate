@@ -10,13 +10,13 @@ import com.kazumiii.gachacrate.crates.CrateManager;
 import com.kazumiii.gachacrate.crates.CrateOpener;
 import com.kazumiii.gachacrate.crates.RarityManager;
 import com.kazumiii.gachacrate.crates.PhysicalCrateManager;
+import com.kazumiii.gachacrate.guis.MenuListener;
 import com.kazumiii.gachacrate.holograms.HologramManager;
 import com.kazumiii.gachacrate.holograms.PityPlaceholder;
 import com.kazumiii.gachacrate.items.KeyManager;
-import com.kazumiii.gachacrate.player.PlayerManager;
-import com.kazumiii.gachacrate.guis.MenuListener;
 import com.kazumiii.gachacrate.listeners.CrateListener;
 import com.kazumiii.gachacrate.listeners.PlayerJoinListener;
+import com.kazumiii.gachacrate.player.PlayerManager;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -36,30 +36,28 @@ public final class GachaCrate extends JavaPlugin {
     private PhysicalCrateManager physicalCrateManager;
     private CrateOpener crateOpener;
     private KeyManager keyManager;
-    private playerManager playerManager;
+    private PlayerManager playerManager;
     private HologramManager hologramManager;
 
     @Override
     public void onEnable() {
         instance = this;
-
         saveDefaultConfig();
 
         try {
-            // Managers that need the config
             this.rarityManager = new RarityManager(this);
             this.keyManager = new KeyManager(this);
             this.crateManager = new CrateManager(this);
             this.playerManager = new PlayerManager(this);
             this.hologramManager = new HologramManager(this);
 
-            // Load all saved crates
+            // Load all saved crates from disk
             this.crateManager.loadCrates();
 
             // Physical crates depend on crates + holograms being loaded
             this.physicalCrateManager = new PhysicalCrateManager(this);
 
-            // Crate opener for animation flows
+            // Crate opener used by animation flows
             this.crateOpener = new CrateOpener();
 
             // Register command executor
@@ -73,30 +71,34 @@ public final class GachaCrate extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new CrateListener(this), this);
             getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
 
-            // Idle particle task for physical crates
+            // Idle particle task for physical crate blocks
             new IdleParticleTask(this).runTaskTimer(this, 40L, 2L);
 
             // Optional: PlaceholderAPI hook
             if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
                 new PityPlaceholder(this).register();
-                logger().info("PlaceholderAPI detected - pity placeholders registered.");
+                getLogger().info("PlaceholderAPI detected - pity placeholders registered.");
             }
 
             getLogger().info("GachaCrate enabled. Version: " + getDescription().getVersion());
         } catch (Throwable t) {
-            getLogger().log(Level.SEVERE, "Failed to introduce GachaCrate", t);
+            getLogger().log(Level.SEVERE, "Failed to enable GachaCrate", t);
             getServer().getPluginManager().disablePlugin(this);
-    }
+        }
     }
 
     @Override
     public void onDisable() {
         try {
-            if (crateManager != null) crateManager.saveCrates();
+            if (crateManager != null) {
+                crateManager.saveCrates();
+            }
             if (playerManager != null) {
                 getServer().getOnlinePlayers().forEach(p -> playerManager.savePlayerData(p));
             }
-            if (hologramManager != null) hologramManager.removeAllHolograms();
+            if (hologramManager != null) {
+                hologramManager.removeAllHolograms();
+            }
         } catch (Exception e) {
             getLogger().log(Level.SEVERE, "Error saving data on disable", e);
         }
@@ -108,30 +110,30 @@ public final class GachaCrate extends JavaPlugin {
     }
 
     public CrateManager getCrateManager() {
-        return this.crateManager;
+        return crateManager;
     }
 
     public RarityManager getRarityManager() {
-        return this.rarityManager;
+        return rarityManager;
     }
 
     public PhysicalCrateManager getPhysicalCrateManager() {
-        return this.physicalCrateManager;
+        return physicalCrateManager;
     }
 
-    public CrateOpener getCrateOpener() placeholder: {
-        return this.crateOpener;
+    public CrateOpener getCrateOpener() {
+        return crateOpener;
     }
 
     public KeyManager getKeyManager() {
-        return this.keyManager;
+        return keyManager;
     }
 
     public PlayerManager getPlayerManager() {
-        return this.playerManager;
+        return playerManager;
     }
 
     public HologramManager getHologramManager() {
-        return this.hologramManager;
+        return hologramManager;
     }
 }
