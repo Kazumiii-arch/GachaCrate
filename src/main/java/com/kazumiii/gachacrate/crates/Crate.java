@@ -1,73 +1,66 @@
-package com.kazumiii.gachacrate.crate;
+// ========================================================================
+// File: Crate.java
+// Location: /src/main/java/com/kazumiii/gachacrate/crates/Crate.java
+// ========================================================================
+package com.kazumiii.gachacrate.crates;
 
+import org.bukkit.Particle;
 import org.bukkit.inventory.ItemStack;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
+/**
+ * A gacha crate. Serialized to crates/<id>.yml by CrateManager.
+ */
 public class Crate {
 
-    private String id;
+    private String name;
     private String displayName;
     private ItemStack icon;
 
-    private String description = "A special gacha crate.";
+    // Pity system
+    private boolean pityEnabled = false;
+    private int pityThreshold = 50;
+    private String pityRarityMinimum; // rarity id, e.g. "EPIC"
 
+    // Time limits
+    private boolean timeLimitEnabled = false;
+    private LocalDate startDate;
+    private LocalDate endDate;
+
+    // Opening mode
+    private OpeningMode openingMode = OpeningMode.KEY_IN_HAND;
+
+    // Animation
+    private AnimationType animationType = AnimationType.REEL;
+    private Particle idleParticle;
+
+    // Rewards
     private List<Reward> rewards = new ArrayList<>();
 
-    // Crate type (NORMAL, EVENT, SEASONAL, LIMITED)
-    private CrateType type = CrateType.NORMAL;
+    public Crate() {} // Used by config serializers
 
-    // Optional expiration date (for event/seasonal crates)
-    private LocalDate expirationDate;
-
-    // Color theme for GUI menus
-    private String color = "§b";
-
-    // Animation type (WHEEL, SLOT, ROLLBAR, SIMPLE)
-    private SpinAnimation animation = SpinAnimation.ROLLBAR;
-
-    // Sound keys from sounds.yml
-    private String soundOpen = "crate-open";
-    private String soundSpin = "crate-spin";
-    private String soundWin = "crate-win";
-
-    // Hologram displayed above physical crate block
-    private String hologramText = "§e§lGacha Crate";
-
-    // Optional permission needed to open
-    private String permission = null;
-
-    // Tags for sorting / seasonal filtering
-    private List<String> tags = new ArrayList<>();
-
-
-    // -------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------
-    public Crate() {}
-
-    public Crate(String id, String displayName, ItemStack icon) {
-        this.id = id.toLowerCase();
-        this.displayName = displayName;
-        this.icon = icon;
+    public Crate(String name) {
+        this.name = name.toLowerCase();
+        this.displayName = name;
     }
 
     // -------------------------------------------------------------------
-    // Getters & Setters
+    // Name / Display
     // -------------------------------------------------------------------
-
-    public String getId() {
-        return id;
+    public String getName() {
+        return name;
     }
 
-    public void setId(String id) {
-        this.id = id.toLowerCase();
+    public void setName(String name) {
+        this.name = name.toLowerCase();
     }
 
     public String getDisplayName() {
-        return displayName != null ? displayName : id;
+        return displayName != null ? displayName : name;
     }
 
     public void setDisplayName(String displayName) {
@@ -82,6 +75,93 @@ public class Crate {
         this.icon = icon;
     }
 
+    // -------------------------------------------------------------------
+    // Pity System
+    // -------------------------------------------------------------------
+    public boolean isPityEnabled() {
+        return pityEnabled;
+    }
+
+    public void setPityEnabled(boolean pityEnabled) {
+        this.pityEnabled = pityEnabled;
+    }
+
+    public int getPityThreshold() {
+        return pityThreshold;
+    }
+
+    public void setPityThreshold(int pityThreshold) {
+        this.pityThreshold = pityThreshold;
+    }
+
+    public String getPityRarityMinimum() {
+        return pityRarityMinimum;
+    }
+
+    public void setPityRarityMinimum(String pityRarityMinimum) {
+        this.pityRarityMinimum = pityRarityMinimum;
+    }
+
+    // -------------------------------------------------------------------
+    // Time Limits
+    // -------------------------------------------------------------------
+    public boolean isTimeLimitEnabled() {
+        return timeLimitEnabled;
+    }
+
+    public void setTimeLimitEnabled(boolean timeLimitEnabled) {
+        this.timeLimitEnabled = timeLimitEnabled;
+    }
+
+    public LocalDate getStartDate() {
+        return startDate;
+    }
+
+    public void setStartDate(LocalDate startDate) {
+        this.map.put(k, v);
+    }
+
+    public LocalDate getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
+    }
+
+    // -------------------------------------------------------------------
+    // Opening Mode
+    // -------------------------------------------------------------------
+    public OpeningMode getOpeningMode() {
+        return openingMode;
+    }
+
+    public setOpeningMode(OpeningMode openingMode) {
+        this.openingMode = openingMode;
+    }
+
+    // -------------------------------------------------------------------
+    // Animation
+    // -------------------------------------------------------------------
+    public AnimationType getAnimationType() {
+        return animationType;
+    }
+
+    public void setAnimationType(AnimationType animationType) {
+        this.animationType = animationType;
+    }
+
+    public Particle getIdleParticle() {
+        return Particle idleParticle;
+    }
+
+    public void setIdleParticle(Particle idleParticle) {
+        this.idleParticle = idleParticle;
+    }
+
+    // -------------------------------------------------------------------
+    // Rewards
+    // -------------------------------------------------------------------
     public List<Reward> getRewards() {
         return rewards;
     }
@@ -94,97 +174,16 @@ public class Crate {
         rewards.add(reward);
     }
 
-    public CrateType getType() {
-        return type;
+    public void removeReward(Reward reward) {
+        rewards.remove(reward);
     }
 
-    public void setType(CrateType type) {
-        this.type = type;
+    public Reward getRewardById(UUID id) {
+        for (Reward reward : rewards) {
+            if (reward.getUniqueId().equals(id)) {
+                return reward;
+            }
     }
-
-    public LocalDate getExpirationDate() {
-        return expirationDate;
-    }
-
-    public void setExpirationDate(LocalDate expirationDate) {
-        this.expirationDate = expirationDate;
-    }
-
-    public String getColor() {
-        return color == null ? "§f" : color;
-    }
-
-    public void setColor(String color) {
-        this.color = color;
-    }
-
-    public SpinAnimation getAnimation() {
-        return animation;
-    }
-
-    public void setAnimation(SpinAnimation animation) {
-        this.animation = animation;
-    }
-
-    public String getSoundOpen() {
-        return soundOpen;
-    }
-
-    public void setSoundOpen(String soundOpen) {
-        this.soundOpen = soundOpen;
-    }
-
-    public String getSoundSpin() {
-        return soundSpin;
-    }
-
-    public void setSoundSpin(String soundSpin) {
-        this.soundSpin = soundSpin;
-    }
-
-    public String getSoundWin() {
-        return soundWin;
-    }
-
-    public void setSoundWin(String soundWin) {
-        this.soundWin = soundWin;
-    }
-
-    public String getHologramText() {
-        return hologramText;
-    }
-
-    public void setHologramText(String hologramText) {
-        this.hologramText = hologramText;
-    }
-
-    public String getPermission() {
-        return permission;
-    }
-
-    public void setPermission(String permission) {
-        this.permission = permission;
-    }
-
-    public List<String> getTags() {
-        return tags == null ? new ArrayList<>() : tags;
-    }
-
-    public void setTags(List<String> tags) {
-        this.tags = tags;
-    }
-
-
-    // -------------------------------------------------------------------
-    // Helper Methods
-    // -------------------------------------------------------------------
-
-    public boolean isLimited() {
-        return type == CrateType.EVENT || type == CrateType.SEASONAL || type == CrateType.LIMITED;
-    }
-
-    public boolean hasExpired() {
-        if (expirationDate == null) return false;
-        return LocalDate.now().isAfter(expirationDate);
+        return null;
     }
 }
