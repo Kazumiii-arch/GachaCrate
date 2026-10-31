@@ -118,7 +118,7 @@ public class Crate {
     }
 
     public void setStartDate(LocalDate startDate) {
-        this.map.put(k, v);
+        this.startDate = startDate;
     }
 
     public LocalDate getEndDate() {
@@ -136,7 +136,7 @@ public class Crate {
         return openingMode;
     }
 
-    public setOpeningMode(OpeningMode openingMode) {
+    public void setOpeningMode(OpeningMode openingMode) {
         this.openingMode = openingMode;
     }
 
@@ -152,7 +152,7 @@ public class Crate {
     }
 
     public Particle getIdleParticle() {
-        return Particle idleParticle;
+        return idleParticle;
     }
 
     public void setIdleParticle(Particle idleParticle) {
@@ -183,7 +183,7 @@ public class Crate {
             if (reward.getUniqueId().equals(id)) {
                 return reward;
             }
-    }
+        }
         return null;
     }
 }
