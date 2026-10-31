@@ -1,48 +1,46 @@
-package com.kazumiii.gachacrate.crate;
+// ========================================================================
+// File: Rarity.java
+// Location: /src/main/java/com/kazumiii/gachacrate/crates/Rarity.java
+// ========================================================================
+package com.kazumiii.gachacrate.crates;
+
+import org.bukkit.ChatColor;
 
 /**
- * Rarity levels for rewards.
- * Each rarity has:
- * - Color
- * - Weight multiplier
- * - Glow flag
- * - Display name
+ * A rarity tier loaded from config.yml ("rarities" section).
+ * Config-driven so server owners can define their own tiers,
+ * matching what RarityManager already expects.
  */
-public enum Rarity {
+public class Rarity {
 
-    COMMON("§7", "Common", 1.0, false),
-    UNCOMMON("§a", "Uncommon", 1.2, false),
-    RARE("§9", "Rare", 1.5, false),
-    EPIC("§5", "Epic", 2.0, true),
-    LEGENDARY("§6", "Legendary", 3.0, true),
-    MYTHIC("§d", "Mythic", 5.0, true);
-
-    private final String color;
+    private final String id;
     private final String displayName;
-    private final double weightMultiplier;
-    private final boolean glow;
+    private final ChatColor color;
+    private final int order;
 
-    Rarity(String color, String displayName, double weightMultiplier, boolean glow) {
-        this.color = color;
+    public Rarity(String id, String displayName, ChatColor color, int order) {
+        this.id = id;
         this.displayName = displayName;
-        this.weightMultiplier = weightMultiplier;
-        this.glow = glow;
+        this.color = color;
+        this.order = order;
     }
 
-    public String getColor() {
-        return color;
+    /** The config key / ID of this rarity (e.g. "MYTHIC"). */
+    public String getId() {
+        return id;
     }
 
     public String getDisplayName() {
         return displayName;
     }
 
-    public double getWeightMultiplier() {
-        return weightMultiplier;
+    public ChatColor getColor() {
+        return color;
     }
 
-    public boolean isGlow() {
-        return glow;
+    /** Higher is better. Used for pity checks, sorting and broadcast thresholds. */
+    public int getOrder() {
+        return order;
     }
 
     public String getStyledName() {
