@@ -129,14 +129,33 @@ public class Reward {
 
     /**
      * Resolves the live Rarity object for this reward via the plugin's
-     * RarityManager. Returns null if the rarity id no longer exists.
+     * RarityManager. Returns null if the rarity id is missing or no longer
+     * exists (e.g. it was removed from config.yml).
      */
     public Rarity getRarity() {
+        if (rarityId == null) return null;
         return com.kazumiii.gachacrate.GachaCrate.getInstance()
                 .getRarityManager().getRarity(rarityId);
     }
 
     public void setRarity(Rarity rarity) {
         this.rarityId = rarity != null ? rarity.getId() : null;
+    }
+
+    /**
+     * A human readable name used in broadcasts and messages.
+     */
+    public String getDisplayName() {
+        if (type == RewardType.ITEM && item != null) {
+            if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
+                return item.getItemMeta().getDisplayName();
+            }
+            return item.getType().name().replace('_', ' ').toLowerCase();
+        }
+        if (previewItem != null && previewItem.hasItemMeta() && previewItem.getItemMeta().hasDisplayName()) {
+            return previewItem.getItemMeta().getDisplayName();
+        }
+        Rarity r = getRarity();
+        return (r != null ? r.getDisplayName() + " " : "") + "Command Reward";
     }
 }
