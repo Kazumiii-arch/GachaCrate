@@ -46,11 +46,11 @@ public class HologramManager {
 
         Crate crate = plugin.getCrateManager().getCrate(crateName);
         if (crate == null) return;
-        
+
         String hologramName = getHologramName(blockLocation);
         // Position the hologram nicely above the block
         Location hologramLocation = blockLocation.clone().add(0.5, 2.2, 0.5);
-        
+
         List<String> lines = new ArrayList<>(Arrays.asList(
             "&b&l" + crate.getName() + " Crate",
             "&eLeft-Click to Preview",
@@ -77,6 +77,18 @@ public class HologramManager {
         // If a hologram with our unique name exists, delete it.
         if (hologram != null) {
             hologram.delete();
+        }
+    }
+
+    /**
+     * Removes the holograms for every registered physical crate location.
+     * Called on plugin disable so we don't leave orphaned holograms behind.
+     */
+    public void removeAllHolograms() {
+        if (!isHologramsEnabled) return;
+
+        for (org.bukkit.Location loc : plugin.getPhysicalCrateManager().getAllCrateLocations().keySet()) {
+            removeHologram(loc);
         }
     }
 }
