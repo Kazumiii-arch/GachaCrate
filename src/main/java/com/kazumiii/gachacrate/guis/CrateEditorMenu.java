@@ -19,10 +19,13 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Reward list for a crate: left-click to edit, right-click to remove,
+ * star button to add new rewards.
+ */
 public class CrateEditorMenu extends Menu {
 
     private final Crate crate;
@@ -36,62 +39,69 @@ public class CrateEditorMenu extends Menu {
 
     @Override
     public void open() {
-        inventory = Bukkit.createInventory(this, 54, "Edit Rewards: " + crate.getName());
+        inventory = Bukkit.createInventory(this, 54, "§8Rewards" + ChatColor.DARK_GRAY + " » " + ChatColor.AQUA + crate.getDisplayName());
+        ItemBuilder.drawBorder(inventory);
 
         for (Reward reward : crate.getRewards()) {
             ItemStack displayItem;
-            if (reward.getType() == RewardType.ITEM) {
+            if (reward.getType() == RewardType.ITEM && reward.getItem() != null) {
                 displayItem = reward.getItem().clone();
             } else {
-                displayItem = (reward.getPreviewItem() != null) ? reward.getPreviewItem().clone() : new ItemStack(Material.COMMAND_BLOCK);
+                displayItem = reward.getPreviewItem() != null
+                        ? reward.getPreviewItem().clone()
+                        : new ItemStack(Material.COMMAND_BLOCK);
             }
 
-            // This is the robust fix: get the meta, or create a new one if it's null.
-            ItemMeta meta = displayItem.hasItemMeta() ? displayItem.getItemMeta() : Bukkit.getItemFactory().getItemMeta(displayItem.getType());
-            
-            // Create a fresh lore list to avoid modifying the original item's lore.
+            ItemMeta meta = displayItem.hasItemMeta()
+                    ? displayItem.getItemMeta()
+                    : Bukkit.getItemFactory().getItemMeta(displayItem.getType());
+
             List<String> newLore = new ArrayList<>();
-            if (meta != null && meta.hasLore()) {
+            if (meta != null && meta.hasLore() && meta.getLore() != null) {
                 newLore.addAll(meta.getLore());
             }
 
-            if (reward.getType() == RewardType.COMMAND) {
+            if (reward.getType() == RewardType.COMMAND && reward.getCommand() != null) {
                 if (meta != null && !meta.hasDisplayName()) {
-                    meta.setDisplayName(reward.getRarity().getColor() + "Command Reward");
+                    String color = reward.getRarity() != null ? reward.getRarity().getColor().toString() : "§7";
+                    meta.setDisplayName(color + "Command Reward");
                 }
                 newLore.add(0, "§7Executes: §f/" + reward.getCommand());
             }
-            
-            // Add the standardized info footer to the new lore
+
+            // Info footer
+            String rarityName = reward.getRarity() != null ? reward.getRarity().getDisplayName() : "Unknown";
             newLore.add("");
-            newLore.add("§eRarity: " + reward.getRarity().getDisplayName());
-            newLore.add("§eChance: §f" + reward.getChance() + "%");
+            newLore.add(ChatColor.GRAY + "Rarity: " + ChatColor.WHITE + rarityName);
+            newLore.add(ChatColor.GRAY + "Chance: " + ChatColor.WHITE + reward.getChance() + "%");
             newLore.add("");
-            newLore.add("§a► Left-Click to Edit");
-            newLore.add("§c► Right-Click to Remove");
-            meta.setLore(newLore);
-            
-            // Embed the unique ID into the item's data container.
-            meta.getPersistentDataContainer().set(rewardIdKey, PersistentDataType.STRING, reward.getUniqueId().toString());
-            
-            // Apply the fully modified meta back to the item
-            displayItem.setItemMeta(meta);
+            newLore.add(ChatColor.GREEN + "❯ Left-Click to Edit");
+            newLore.add(ChatColor.RED + "❯ Right-Click to Remove");
+
+            if (meta != null) {
+                meta.setLore(newLore);
+                // Embed the unique ID so clicks map back to this exact reward.
+                meta.getPersistentDataContainer().set(rewardIdKey, PersistentDataType.STRING, reward.getUniqueId().toString());
+                displayItem.setItemMeta(meta);
+            }
             inventory.addItem(displayItem);
         }
 
-        // --- GUI Control Buttons ---
-        ItemStack backButton = new ItemStack(Material.BARRIER);
-        ItemMeta backMeta = backButton.getItemMeta();
-        backMeta.setDisplayName(ChatColor.RED + "« Back to Settings");
-        backButton.setItemMeta(backMeta);
-        inventory.setItem(45, backButton);
+        // Controls
+        inventory.setItem(45, ItemBuilder.backButton("Settings"));
+        inventory.setItem(49, new ItemBuilder(Material.NETHER_STAR)
+                .name(ChatColor.GREEN + "✚ Add New Reward")
+                .blank()
+                .lore(ChatColor.GRAY + "Add an item or command")
+                .lore(ChatColor.GRAY + "reward to this crate.")
+                .build());
+        inventory.setItem(53, new ItemBuilder(Material.BOOK)
+                .name(ChatColor.GOLD + "Preview Crate")
+                .blank()
+                .lore(ChatColor.GRAY + "See this crate as players see it.")
+                .build());
 
-        ItemStack addRewardButton = new ItemStack(Material.NETHER_STAR);
-        ItemMeta addMeta = addRewardButton.getItemMeta();
-        addMeta.setDisplayName(ChatColor.GREEN + "✚ Add New Reward");
-        addMeta.setLore(Arrays.asList(ChatColor.GRAY + "Click to add a new item or", ChatColor.GRAY + "command reward to this crate."));
-        addRewardButton.setItemMeta(addMeta);
-        inventory.setItem(53, addRewardButton);
+        ItemBuilder.fillBackground(inventory);
 
         player.openInventory(inventory);
     }
@@ -102,12 +112,16 @@ public class CrateEditorMenu extends Menu {
         ItemStack clicked = event.getCurrentItem();
         if (clicked == null || clicked.getType() == Material.AIR) return;
 
-        if (clicked.getType() == Material.BARRIER) {
-            new CrateSettingsMenu(player, crate).open();
-            return;
-        }
         if (clicked.getType() == Material.NETHER_STAR) {
             new RewardTypeSelectionMenu(player, crate).open();
+            return;
+        }
+        if (clicked.getType() == Material.BOOK) {
+            new CratePreviewMenu(player, crate).open();
+            return;
+        }
+        if (clicked.getType() == Material.ARROW) {
+            new CrateSettingsMenu(player, crate).open();
             return;
         }
 
@@ -121,15 +135,12 @@ public class CrateEditorMenu extends Menu {
             return;
         }
 
-        // The robust fix: check for the specific remove action first.
-        // Any other click (left, shift-click, etc.) will default to the edit action.
         if (event.isRightClick()) {
             crate.removeReward(targetReward);
             GachaCrate.getInstance().getCrateManager().saveCrates();
             player.sendMessage(ChatColor.GREEN + "Reward removed successfully.");
-            open(); // Refresh the menu
+            open();
         } else {
-            // Default to opening the editor
             new RewardEditorMenu(player, crate, targetReward).open();
         }
     }
