@@ -42,7 +42,7 @@ public class CratePreviewMenu extends Menu {
     }
 
     @Override
-    public open() {
+    public void open() {
         inventory = Bukkit.createInventory(this, 54, "§8Preview: " + crate.getDisplayName());
         drawItems();
         player.openInventory(inventory);
