@@ -13,10 +13,10 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.Arrays;
-
+/**
+ * Place-an-item flow for setting a command reward's preview icon.
+ */
 public class SetPreviewItemMenu extends Menu {
 
     private final Crate crate;
@@ -30,38 +30,34 @@ public class SetPreviewItemMenu extends Menu {
 
     @Override
     public void open() {
-        inventory = Bukkit.createInventory(this, 27, "Set Preview Item");
+        inventory = Bukkit.createInventory(this, 27, "§8Set Preview Icon");
 
-        // Instructions and placeholder slot
-        ItemStack info = new ItemStack(Material.PAPER);
-        ItemMeta infoMeta = info.getItemMeta();
-        infoMeta.setDisplayName(ChatColor.YELLOW + "Place Item Here");
-        infoMeta.setLore(Arrays.asList(ChatColor.GRAY + "Place the item you want to use", ChatColor.GRAY + "as a preview from your inventory."));
-        info.setItemMeta(infoMeta);
-        inventory.setItem(4, info);
-        inventory.setItem(13, reward.getPreviewItem()); // Show current preview item
+        ItemBuilder.drawBorder(inventory);
 
-        // Confirm Button
-        ItemStack confirmButton = new ItemStack(Material.LIME_STAINED_GLASS_PANE);
-        ItemMeta confirmMeta = confirmButton.getItemMeta();
-        confirmMeta.setDisplayName(ChatColor.GREEN + "" + ChatColor.BOLD + "CONFIRM");
-        confirmButton.setItemMeta(confirmMeta);
+        // Instructions
+        inventory.setItem(4, new ItemBuilder(Material.PAPER)
+                .name(ChatColor.YELLOW + "Place Icon Item Here")
+                .blank()
+                .lore(ChatColor.GRAY + "Place the item to use as this")
+                .lore(ChatColor.GRAY + "reward's icon in the slot below.")
+                .build());
 
-        // Cancel Button
-        ItemStack cancelButton = new ItemStack(Material.RED_STAINED_GLASS_PANE);
-        ItemMeta cancelMeta = cancelButton.getItemMeta();
-        cancelMeta.setDisplayName(ChatColor.RED + "« Cancel");
-        cancelButton.setItemMeta(cancelMeta);
+        // Current preview item (13) — replaceable
+        ItemStack current = reward.getPreviewItem();
+        inventory.setItem(13, current != null ? current : null);
 
-        inventory.setItem(21, confirmButton);
-        inventory.setItem(23, cancelButton);
+        // Confirm / Cancel
+        inventory.setItem(21, ItemBuilder.cancelButton());
+        inventory.setItem(23, ItemBuilder.confirmButton("Set Icon"));
+
+        ItemBuilder.fillBackground(inventory);
 
         player.openInventory(inventory);
     }
 
     @Override
     public void handleMenu(InventoryClickEvent event) {
-        // Allow player to place an item in the designated slot
+        // Allow the player to place an item in the designated slot (13)
         if (event.getSlot() == 13 || event.getClickedInventory() == player.getInventory()) {
             return;
         }
