@@ -1,27 +1,30 @@
+// ========================================================================
+// File: IdleParticleMenu.java
+// Location: /src/main/java/com/kazumiii/gachacrate/animations/IdleParticleMenu.java
+// ========================================================================
 package com.kazumiii.gachacrate.animations;
 
 import com.kazumiii.gachacrate.GachaCrate;
 import com.kazumiii.gachacrate.crates.Crate;
 import com.kazumiii.gachacrate.guis.CrateSettingsMenu;
+import com.kazumiii.gachacrate.guis.ItemBuilder;
 import com.kazumiii.gachacrate.guis.Menu;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Particle;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.ItemFlag;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Idle particle effect picker with selected-state glow.
+ */
 public class IdleParticleMenu extends Menu {
 
     private final Crate crate;
-    // An expanded list of attractive particles for more customization
     private final List<Particle> availableParticles = Arrays.asList(
             Particle.ENCHANTMENT_TABLE, Particle.TOTEM, Particle.VILLAGER_HAPPY,
             Particle.PORTAL, Particle.FLAME, Particle.SOUL_FIRE_FLAME,
@@ -36,42 +39,36 @@ public class IdleParticleMenu extends Menu {
 
     @Override
     public void open() {
-        // Increased size to 36 to hold more options
-        inventory = Bukkit.createInventory(this, 36, "§8Idle Particle Effect");
+        inventory = Bukkit.createInventory(this, 36, "§8Idle Particle: " + crate.getDisplayName());
+        ItemBuilder.drawBorder(inventory);
 
-        // --- Particle Selection ---
-        for (int i = 0; i < availableParticles.size(); i++) {
-            if (i >= 27) break; // Prevent overflow, fits 3 rows of particles
-            
-            Particle particle = availableParticles.get(i);
-            ItemStack item = new ItemStack(Material.PAPER);
-            ItemMeta meta = item.getItemMeta();
-            meta.setDisplayName(ChatColor.AQUA + particle.name());
+        // Particle grid (interior slots only)
+        int slot = 10;
+        for (Particle particle : availableParticles) {
+            if (slot > 33) break;
+            if (slot % 9 == 0 || slot % 9 == 8) slot++; // skip border columns
 
-            if (crate.getIdleParticle() == particle) {
-                meta.addEnchant(Enchantment.LUCK, 1, false);
-                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-                meta.setLore(Arrays.asList(ChatColor.GREEN + "Currently Selected"));
-            } else {
-                meta.setLore(Arrays.asList(ChatColor.YELLOW + "► Click to select"));
-            }
-            item.setItemMeta(meta);
-            inventory.setItem(i, item);
+            boolean selected = crate.getIdleParticle() == particle;
+            inventory.setItem(slot, new ItemBuilder(Material.PAPER)
+                    .name(ChatColor.AQUA + prettyName(particle))
+                    .blank()
+                    .lore(selected
+                            ? ChatColor.GREEN + "✔ Currently selected"
+                            : ChatColor.YELLOW + "❯ Click to select")
+                    .glowIf(selected)
+                    .build());
+            slot++;
         }
 
-        // --- Control Buttons ---
-        ItemStack disableButton = new ItemStack(Material.BARRIER);
-        ItemMeta disableMeta = disableButton.getItemMeta();
-        disableMeta.setDisplayName(ChatColor.RED + "Disable Effect");
-        disableButton.setItemMeta(disableMeta);
+        // Controls
+        inventory.setItem(27, ItemBuilder.backButton("Settings"));
+        inventory.setItem(31, new ItemBuilder(Material.BARRIER)
+                .name(ChatColor.RED + "Disable Effect")
+                .blank()
+                .lore(ChatColor.GRAY + "Turn off the idle particle.")
+                .build());
 
-        ItemStack backButton = new ItemStack(Material.ARROW);
-        ItemMeta backMeta = backButton.getItemMeta();
-        backMeta.setDisplayName(ChatColor.YELLOW + "« Back to Settings");
-        backButton.setItemMeta(backMeta);
-
-        inventory.setItem(27, backButton);
-        inventory.setItem(35, disableButton);
+        ItemBuilder.fillBackground(inventory);
 
         player.openInventory(inventory);
     }
@@ -93,18 +90,29 @@ public class IdleParticleMenu extends Menu {
             open();
             return;
         }
-        
+
         if (clickedType == Material.PAPER) {
+            String particleName = ChatColor.stripColor(event.getCurrentItem().getItemMeta().getDisplayName());
             try {
-                String particleName = ChatColor.stripColor(event.getCurrentItem().getItemMeta().getDisplayName());
                 Particle selectedParticle = Particle.valueOf(particleName);
                 crate.setIdleParticle(selectedParticle);
                 GachaCrate.getInstance().getCrateManager().saveCrates();
                 player.sendMessage(ChatColor.GREEN + "Idle particle set to " + particleName + "!");
-                open(); // Refresh the menu to show the selection
-            } catch (Exception e) {
-                // Clicked on something else, do nothing
+                open();
+            } catch (IllegalArgumentException ignored) {
+                // Not one of ours — ignore
             }
         }
     }
+
+    /** "ENCHANTMENT_TABLE" -> "Enchantment Table" */
+    private String prettyName(Particle particle) {
+        String[] words = particle.name().split("_");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < words.length; i++) {
+            if (i > 0) sb.append(' ');
+            sb.append(words[i].charAt(0)).append(words[i].substring(1).toLowerCase());
+        }
+        return sb.toString();
     }
+}
