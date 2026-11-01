@@ -92,8 +92,8 @@ public class ItemBuilder {
                 meta.setLore(new ArrayList<>(lore));
             }
             if (glow) {
-                meta.addEnchant(Enchantment.LUCK_OF_THE_SEA, 1, true);
-                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                // Enchantment.LUCK is the 1.20.1 constant (LUCK_OF_THE_SEA only exists in 1.20.5+).
+                meta.addEnchant(Enchantment.LUCK, 1, true);
             }
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
             item.setItemMeta(meta);
