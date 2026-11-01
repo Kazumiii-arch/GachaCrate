@@ -15,10 +15,10 @@ import org.bukkit.conversations.ConversationFactory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.Arrays;
-
+/**
+ * Choose between adding an item reward or a command reward.
+ */
 public class RewardTypeSelectionMenu extends Menu {
 
     private final Crate crate;
@@ -30,28 +30,41 @@ public class RewardTypeSelectionMenu extends Menu {
 
     @Override
     public void open() {
-        inventory = Bukkit.createInventory(this, 27, "Select Reward Type");
+        inventory = Bukkit.createInventory(this, 27, "§8Add Reward" + ChatColor.DARK_GRAY + " » " + ChatColor.AQUA + crate.getDisplayName());
 
-        ItemStack itemReward = new ItemStack(Material.DIAMOND_SWORD);
-        ItemMeta itemMeta = itemReward.getItemMeta();
-        itemMeta.setDisplayName(ChatColor.AQUA + "Add Item Reward");
-        itemMeta.setLore(Arrays.asList(ChatColor.GRAY + "Add a physical item from", ChatColor.GRAY + "your inventory as a reward."));
-        itemReward.setItemMeta(itemMeta);
+        ItemBuilder.drawBorder(inventory);
 
-        ItemStack commandReward = new ItemStack(Material.COMMAND_BLOCK);
-        ItemMeta commandMeta = commandReward.getItemMeta();
-        commandMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "Add Command Reward");
-        commandMeta.setLore(Arrays.asList(ChatColor.GRAY + "Add a console command", ChatColor.GRAY + "as a reward."));
-        commandReward.setItemMeta(commandMeta);
+        // Header
+        inventory.setItem(4, new ItemBuilder(Material.PAPER)
+                .name(ChatColor.GOLD + "Choose Reward Type")
+                .blank()
+                .lore(ChatColor.GRAY + "Pick what kind of reward to add.")
+                .build());
 
-        ItemStack backButton = new ItemStack(Material.BARRIER);
-        ItemMeta backMeta = backButton.getItemMeta();
-        backMeta.setDisplayName(ChatColor.RED + "« Back");
-        backButton.setItemMeta(backMeta);
+        // Item reward
+        inventory.setItem(12, new ItemBuilder(Material.DIAMOND_SWORD)
+                .name(ChatColor.AQUA + "Item Reward")
+                .blank()
+                .lore(ChatColor.GRAY + "A physical item from your")
+                .lore(ChatColor.GRAY + "inventory, given on win.")
+                .blank()
+                .lore(ChatColor.YELLOW + "❯ Click to select")
+                .build());
 
-        inventory.setItem(12, itemReward);
-        inventory.setItem(14, commandReward);
-        inventory.setItem(18, backButton);
+        // Command reward
+        inventory.setItem(14, new ItemBuilder(Material.COMMAND_BLOCK)
+                .name(ChatColor.LIGHT_PURPLE + "Command Reward")
+                .blank()
+                .lore(ChatColor.GRAY + "A console command executed")
+                .lore(ChatColor.GRAY + "when this reward is won.")
+                .lore(ChatColor.GRAY + "Use " + ChatColor.WHITE + "{player}" + ChatColor.GRAY + " for the name.")
+                .blank()
+                .lore(ChatColor.YELLOW + "❯ Click to select")
+                .build());
+
+        inventory.setItem(22, ItemBuilder.backButton("Reward list"));
+
+        ItemBuilder.fillBackground(inventory);
 
         player.openInventory(inventory);
     }
@@ -73,6 +86,7 @@ public class RewardTypeSelectionMenu extends Menu {
                 convo.begin();
                 break;
             case BARRIER:
+            case ARROW:
                 new CrateEditorMenu(player, crate).open();
                 break;
             default:

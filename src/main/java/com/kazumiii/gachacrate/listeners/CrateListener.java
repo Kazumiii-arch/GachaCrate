@@ -32,7 +32,7 @@ public class CrateListener implements Listener {
     public void onPlayerInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         Action action = event.getAction();
-        
+
         // --- Handle Physical Block Interactions ---
         if (action == Action.LEFT_CLICK_BLOCK || action == Action.RIGHT_CLICK_BLOCK) {
             Block clickedBlock = event.getClickedBlock();
@@ -47,7 +47,7 @@ public class CrateListener implements Listener {
                     new CratePreviewMenu(player, crate).open();
                     return;
                 }
-                
+
                 // On right click, only proceed if the mode is set to PHYSICAL_BLOCKS
                 if (crate.getOpeningMode() == OpeningMode.PHYSICAL_BLOCKS) {
                     openCrate(player, crate, player.getInventory().getItemInMainHand());
@@ -74,6 +74,9 @@ public class CrateListener implements Listener {
 
     /**
      * Handles the final logic for opening a crate after all initial checks.
+     * Gates, in order: key match -> time limit -> permission -> has rewards.
+     * Only after ALL gates pass is the key consumed.
+     *
      * @param player The player opening the crate.
      * @param crate The crate being opened.
      * @param key The item stack being used as a key.
@@ -82,26 +85,45 @@ public class CrateListener implements Listener {
         String keyCrateName = plugin.getKeyManager().getCrateFromKey(key);
         if (keyCrateName == null || !keyCrateName.equalsIgnoreCase(crate.getName())) {
             if (crate.getOpeningMode() == OpeningMode.PHYSICAL_BLOCKS) {
-                player.sendMessage(ChatColor.RED + "You need a " + ChatColor.YELLOW + crate.getName() + " Key" + ChatColor.RED + " to open this!");
+                player.sendMessage(ChatColor.RED + "You need a " + ChatColor.YELLOW + crate.getDisplayName()
+                        + " Key" + ChatColor.RED + " to open this!");
             }
             return;
         }
-        
+
+        // Time limit: each bound is only enforced if it is actually set.
         if (crate.isTimeLimitEnabled()) {
             LocalDate now = LocalDate.now();
-            if (now.isBefore(crate.getStartDate()) || now.isAfter(crate.getEndDate())) {
-                player.sendMessage(ChatColor.RED + "This crate is only available from " + crate.getStartDate() + " to " + crate.getEndDate() + ".");
+            if (crate.getStartDate() != null && now.isBefore(crate.getStartDate())) {
+                player.sendMessage(ChatColor.RED + "This crate opens on " + crate.getStartDate() + ".");
+                return;
+            }
+            if (crate.getEndDate() != null && now.isAfter(crate.getEndDate())) {
+                player.sendMessage(ChatColor.RED + "This crate closed on " + crate.getEndDate() + ".");
                 return;
             }
         }
 
         String permission = "gacha.user.open." + crate.getName();
         if (!player.hasPermission(permission) && !player.hasPermission("gacha.user.open.*")) {
-            player.sendMessage("§cYou don't have permission to open this crate.");
+            player.sendMessage(ChatColor.RED + "You don't have permission to open this crate.");
             return;
         }
 
-        key.setAmount(key.getAmount() - 1);
+        // Never consume a key for a crate that has nothing to give.
+        if (crate.getRewards().isEmpty()) {
+            player.sendMessage(ChatColor.RED + "This crate has no rewards yet. Your key was not used.");
+            return;
+        }
+
+        // Consume one key.
+        int amount = key.getAmount();
+        if (amount <= 1) {
+            player.getInventory().setItemInMainHand(null);
+        } else {
+            key.setAmount(amount - 1);
+        }
+
         new CrateAnimationMenu(player, crate).open();
     }
 }

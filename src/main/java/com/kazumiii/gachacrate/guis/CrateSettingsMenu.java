@@ -12,11 +12,11 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.Arrays;
-
+/**
+ * Settings hub for a single crate: rewards, pity, time limit, animation,
+ * opening mode and idle particles.
+ */
 public class CrateSettingsMenu extends Menu {
 
     private final Crate crate;
@@ -28,66 +28,57 @@ public class CrateSettingsMenu extends Menu {
 
     @Override
     public void open() {
-        inventory = Bukkit.createInventory(this, 36, "§8Settings: " + crate.getName());
+        inventory = Bukkit.createInventory(this, 27, "§8Settings: " + crate.getDisplayName());
 
-        // --- Decorative Panes ---
-        ItemStack placeholder = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta meta = placeholder.getItemMeta();
-        meta.setDisplayName(" ");
-        placeholder.setItemMeta(meta);
-        for (int i = 0; i < inventory.getSize(); i++) {
-            inventory.setItem(i, placeholder);
-        }
+        ItemBuilder.drawBorder(inventory);
 
-        // --- Control Buttons ---
-        ItemStack viewRewards = new ItemStack(Material.CHEST);
-        ItemMeta viewMeta = viewRewards.getItemMeta();
-        viewMeta.setDisplayName(ChatColor.AQUA + "View & Edit Rewards");
-        viewMeta.setLore(Arrays.asList(ChatColor.GRAY + "Add, remove, or edit the", ChatColor.GRAY + "rewards inside this crate."));
-        viewRewards.setItemMeta(viewMeta);
+        // Header — crate summary
+        inventory.setItem(4, new ItemBuilder(Material.BOOK)
+                .name(ChatColor.AQUA + crate.getDisplayName())
+                .blank()
+                .lore(ChatColor.GRAY + "Rewards: " + ChatColor.WHITE + crate.getRewards().size())
+                .lore(ChatColor.GRAY + "Mode: " + ChatColor.WHITE + crate.getOpeningMode().getDisplayName())
+                .build());
 
-        ItemStack pitySettings = new ItemStack(Material.DIAMOND);
-        ItemMeta pityMeta = pitySettings.getItemMeta();
-        pityMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "Pity System Settings");
-        pityMeta.setLore(Arrays.asList(ChatColor.GRAY + "Configure the guaranteed", ChatColor.GRAY + "reward system for this crate."));
-        pitySettings.setItemMeta(pityMeta);
+        inventory.setItem(10, new ItemBuilder(Material.CHEST)
+                .name(ChatColor.AQUA + "View & Edit Rewards")
+                .lore(ChatColor.GRAY + "Add, remove, or edit the")
+                .lore(ChatColor.GRAY + "rewards inside this crate.")
+                .build());
 
-        ItemStack timeLimitSettings = new ItemStack(Material.CLOCK);
-        ItemMeta timeMeta = timeLimitSettings.getItemMeta();
-        timeMeta.setDisplayName(ChatColor.GOLD + "Time-Limit Settings");
-        timeMeta.setLore(Arrays.asList(ChatColor.GRAY + "Set a start and end date", ChatColor.GRAY + "for when this crate can be opened."));
-        timeLimitSettings.setItemMeta(timeMeta);
+        inventory.setItem(11, new ItemBuilder(Material.DIAMOND)
+                .name(ChatColor.LIGHT_PURPLE + "Pity System")
+                .lore(ChatColor.GRAY + "Guaranteed rare reward")
+                .lore(ChatColor.GRAY + "after N opens.")
+                .build());
 
-        ItemStack animationSettings = new ItemStack(Material.JUKEBOX);
-        ItemMeta animMeta = animationSettings.getItemMeta();
-        animMeta.setDisplayName(ChatColor.GREEN + "Animation Settings");
-        animMeta.setLore(Arrays.asList(ChatColor.GRAY + "Change the visual animation", ChatColor.GRAY + "for opening this crate."));
-        animationSettings.setItemMeta(animMeta);
-        
-        ItemStack openingModeButton = new ItemStack(Material.ENDER_EYE);
-        ItemMeta openMeta = openingModeButton.getItemMeta();
-        openMeta.setDisplayName(ChatColor.YELLOW + "Opening Mode Settings");
-        openMeta.setLore(Arrays.asList(ChatColor.GRAY + "Choose how players open this crate."));
-        openingModeButton.setItemMeta(openMeta);
+        inventory.setItem(12, new ItemBuilder(Material.CLOCK)
+                .name(ChatColor.GOLD + "Time Limit")
+                .lore(ChatColor.GRAY + "Restrict when this crate")
+                .lore(ChatColor.GRAY + "can be opened.")
+                .build());
 
-        ItemStack particleButton = new ItemStack(Material.GLOWSTONE_DUST);
-        ItemMeta particleMeta = particleButton.getItemMeta();
-        particleMeta.setDisplayName(ChatColor.GOLD + "Idle Particle Effects");
-        particleMeta.setLore(Arrays.asList(ChatColor.GRAY + "Set a constant particle effect", ChatColor.GRAY + "to display on this crate block."));
-        particleButton.setItemMeta(particleMeta);
+        inventory.setItem(14, new ItemBuilder(Material.JUKEBOX)
+                .name(ChatColor.GREEN + "Animation")
+                .lore(ChatColor.GRAY + "Choose the opening")
+                .lore(ChatColor.GRAY + "animation style.")
+                .build());
 
-        ItemStack backButton = new ItemStack(Material.ARROW);
-        ItemMeta backMeta = backButton.getItemMeta();
-        backMeta.setDisplayName(ChatColor.YELLOW + "« Back to Crate List");
-        backButton.setItemMeta(backMeta);
+        inventory.setItem(15, new ItemBuilder(Material.ENDER_EYE)
+                .name(ChatColor.YELLOW + "Opening Mode")
+                .lore(ChatColor.GRAY + "Key-in-hand or")
+                .lore(ChatColor.GRAY + "physical block.")
+                .build());
 
-        inventory.setItem(10, viewRewards);
-        inventory.setItem(11, pitySettings);
-        inventory.setItem(12, timeLimitSettings);
-        inventory.setItem(14, animationSettings);
-        inventory.setItem(15, openingModeButton);
-        inventory.setItem(16, particleButton);
-        inventory.setItem(27, backButton);
+        inventory.setItem(16, new ItemBuilder(Material.GLOWSTONE_DUST)
+                .name(ChatColor.GOLD + "Idle Particles")
+                .lore(ChatColor.GRAY + "Ambient particle effect")
+                .lore(ChatColor.GRAY + "above the crate block.")
+                .build());
+
+        inventory.setItem(22, ItemBuilder.backButton("Crates list"));
+
+        ItemBuilder.fillBackground(inventory);
 
         player.openInventory(inventory);
     }
@@ -96,7 +87,7 @@ public class CrateSettingsMenu extends Menu {
     public void handleMenu(InventoryClickEvent event) {
         event.setCancelled(true);
         if (event.getCurrentItem() == null || event.getCurrentItem().getType() == Material.AIR) return;
-        
+
         switch (event.getCurrentItem().getType()) {
             case CHEST:
                 new CrateEditorMenu(player, crate).open();

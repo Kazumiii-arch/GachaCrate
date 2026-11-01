@@ -14,14 +14,15 @@ import org.bukkit.conversations.Conversation;
 import org.bukkit.conversations.ConversationFactory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
+/**
+ * Admin dashboard: lists all crates, lets the admin jump into any crate's
+ * settings or create a new one.
+ */
 public class MainMenu extends Menu {
 
     public MainMenu(Player player) {
@@ -30,57 +31,59 @@ public class MainMenu extends Menu {
 
     @Override
     public void open() {
-        inventory = Bukkit.createInventory(this, 54, "§8GachaCrate Admin Menu");
+        inventory = Bukkit.createInventory(this, 54, "§8GachaCrate " + ChatColor.DARK_GRAY + "» " + ChatColor.GRAY + "Crates");
 
-        // --- Decorative Panes ---
-        ItemStack placeholder = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
-        ItemMeta meta = placeholder.getItemMeta();
-        meta.setDisplayName(" ");
-        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-        placeholder.setItemMeta(meta);
-        for (int i = 0; i < inventory.getSize(); i++) {
-            inventory.setItem(i, placeholder);
-        }
-        for (int i = 10; i < 44; i++) { // Clear the middle area for crate items
-             if (i % 9 != 0 && i % 9 != 8) inventory.setItem(i, null);
-        }
+        ItemBuilder.drawBorder(inventory);
 
-        // --- Crate Items ---
+        // Header item — quick stats
+        int crateCount = GachaCrate.getInstance().getCrateManager().getAllCrates().size();
+        ItemStack header = new ItemBuilder(Material.BOOK)
+                .name(ChatColor.GOLD + "GachaCrate Dashboard")
+                .blank()
+                .lore(ChatColor.GRAY + "Crates: " + ChatColor.WHITE + crateCount)
+                .build();
+        inventory.setItem(4, header);
+
+        // --- Crate list in the inner area ---
         int slot = 10;
         for (Crate crate : GachaCrate.getInstance().getCrateManager().getAllCrates().values()) {
             if (slot > 43) break;
             if (slot % 9 == 0 || slot % 9 == 8) slot++;
 
-            ItemStack crateItem = new ItemStack(Material.CHEST);
-            ItemMeta crateMeta = crateItem.getItemMeta();
-            crateMeta.setDisplayName(ChatColor.AQUA + crate.getName());
+            int rewardCount = crate.getRewards().size();
+            String mode = crate.getOpeningMode().getDisplayName();
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Rewards: " + ChatColor.WHITE + crate.getRewards().size());
+            lore.add(ChatColor.GRAY + "Rewards: " + ChatColor.WHITE + rewardCount);
+            lore.add(ChatColor.GRAY + "Mode: " + ChatColor.WHITE + mode);
+            lore.add(ChatColor.GRAY + "Animation: " + ChatColor.WHITE + crate.getAnimationType().getDisplayName());
+            if (crate.isPityEnabled()) {
+                lore.add(ChatColor.LIGHT_PURPLE + "Pity: " + ChatColor.WHITE + crate.getPityThreshold());
+            }
+            if (crate.isTimeLimitEnabled()) {
+                lore.add(ChatColor.GOLD + "Limited: " + ChatColor.WHITE + crate.getStartDate() + " → " + crate.getEndDate());
+            }
             lore.add("");
-            lore.add(ChatColor.YELLOW + "► Click to manage this crate.");
-            crateMeta.setLore(lore);
-            // --- THIS IS THE FIX ---
-            // The correct variable 'crateMeta' is now used.
-            crateItem.setItemMeta(crateMeta);
+            lore.add(ChatColor.YELLOW + "❯ Click to manage this crate");
+
+            ItemStack crateItem = new ItemBuilder(Material.CHEST)
+                    .name(ChatColor.AQUA + crate.getDisplayName())
+                    .loreAll(lore)
+                    .build();
             inventory.setItem(slot, crateItem);
             slot++;
         }
 
-        // --- Control Buttons ---
-        ItemStack createItem = new ItemStack(Material.NETHER_STAR);
-        ItemMeta createMeta = createItem.getItemMeta();
-        createMeta.setDisplayName(ChatColor.GREEN + "✚ Create New Crate");
-        createMeta.setLore(Collections.singletonList(ChatColor.GRAY + "Click to create a new crate."));
-        createItem.setItemMeta(createMeta);
-        
-        ItemStack settingsButton = new ItemStack(Material.COMPARATOR);
-        ItemMeta settingsMeta = settingsButton.getItemMeta();
-        settingsMeta.setDisplayName(ChatColor.GOLD + "Plugin Settings");
-        settingsMeta.setLore(Collections.singletonList(ChatColor.GRAY + "Edit global plugin settings."));
-        settingsButton.setItemMeta(settingsMeta);
+        // --- Control buttons ---
+        inventory.setItem(48, new ItemBuilder(Material.COMPARATOR)
+                .name(ChatColor.GOLD + "Plugin Settings")
+                .lore(ChatColor.GRAY + "Edit global plugin settings.")
+                .build());
+        inventory.setItem(50, new ItemBuilder(Material.NETHER_STAR)
+                .name(ChatColor.GREEN + "✚ Create New Crate")
+                .lore(ChatColor.GRAY + "Click to create a new crate.")
+                .build());
 
-        inventory.setItem(48, settingsButton);
-        inventory.setItem(50, createItem);
+        ItemBuilder.fillBackground(inventory);
 
         player.openInventory(inventory);
     }
@@ -89,23 +92,27 @@ public class MainMenu extends Menu {
     public void handleMenu(InventoryClickEvent event) {
         event.setCancelled(true);
         ItemStack clickedItem = event.getCurrentItem();
-
         if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
 
-        String itemName = ChatColor.stripColor(clickedItem.getItemMeta().getDisplayName());
-
-        if (clickedItem.getType() == Material.NETHER_STAR) {
-            player.closeInventory();
-            ConversationFactory cf = new ConversationFactory(GachaCrate.getInstance());
-            Conversation convo = cf.withFirstPrompt(new CrateCreatePrompt()).withLocalEcho(false).buildConversation(player);
-            convo.begin();
-        } else if (clickedItem.getType() == Material.CHEST) {
-            Crate crate = GachaCrate.getInstance().getCrateManager().getCrate(itemName);
-            if (crate != null) {
-                new CrateSettingsMenu(player, crate).open();
-            }
-        } else if (clickedItem.getType() == Material.COMPARATOR) {
-            player.sendMessage(ChatColor.YELLOW + "Global plugin settings coming soon!");
+        switch (clickedItem.getType()) {
+            case NETHER_STAR:
+                player.closeInventory();
+                ConversationFactory cf = new ConversationFactory(GachaCrate.getInstance());
+                Conversation convo = cf.withFirstPrompt(new CrateCreatePrompt()).withLocalEcho(false).buildConversation(player);
+                convo.begin();
+                break;
+            case CHEST:
+                String itemName = ChatColor.stripColor(clickedItem.getItemMeta().getDisplayName());
+                Crate crate = GachaCrate.getInstance().getCrateManager().getCrate(itemName);
+                if (crate != null) {
+                    new CrateSettingsMenu(player, crate).open();
+                }
+                break;
+            case COMPARATOR:
+                player.sendMessage(ChatColor.YELLOW + "Global plugin settings coming soon!");
+                break;
+            default:
+                break;
         }
     }
-                }
+}

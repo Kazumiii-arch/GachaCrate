@@ -1,4 +1,8 @@
-package com.kazumiii.gachacrate.crate;
+// ========================================================================
+// File: RewardType.java
+// Location: /src/main/java/com/kazumiii/gachacrate/crates/RewardType.java
+// ========================================================================
+package com.kazumiii.gachacrate.crates;
 
 public enum RewardType {
     ITEM,       // Gives an ItemStack

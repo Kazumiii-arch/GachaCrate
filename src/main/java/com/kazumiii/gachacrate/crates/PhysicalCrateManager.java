@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -44,10 +45,13 @@ public class PhysicalCrateManager {
     }
 
     public void addCrate(Location location, String crateName) {
-        crateLocations.put(location, crateName);
-        locationsConfig.set("crates." + locationToPath(location), crateName);
+        if (crateName == null) return;
+        // Normalize so stored names always match the CrateManager registry keys.
+        String normalizedName = crateName.toLowerCase(Locale.ROOT);
+        crateLocations.put(location, normalizedName);
+        locationsConfig.set("crates." + locationToPath(location), normalizedName);
         saveFile();
-        plugin.getHologramManager().createHologram(location, crateName);
+        plugin.getHologramManager().createHologram(location, normalizedName);
     }
 
     public void removeCrate(Location location) {
@@ -69,9 +73,8 @@ public class PhysicalCrateManager {
     }
 
     /**
-     * --- THIS IS THE FIX ---
-     * This new method provides read-only access to the map of crate locations,
-     * which is what the IdleParticleTask needs to work.
+     * Read-only access to the map of crate locations, used by the
+     * IdleParticleTask and the hologram cleanup on disable.
      * @return An unmodifiable map of all physical crate locations.
      */
     public Map<Location, String> getAllCrateLocations() {
@@ -85,8 +88,9 @@ public class PhysicalCrateManager {
             Location loc = pathTolocation(path);
             String crateName = section.getString(path);
             if (loc != null && crateName != null) {
-                crateLocations.put(loc, crateName);
-                plugin.getHologramManager().createHologram(loc, crateName);
+                String normalizedName = crateName.toLowerCase(Locale.ROOT);
+                crateLocations.put(loc, normalizedName);
+                plugin.getHologramManager().createHologram(loc, normalizedName);
             }
         }
         plugin.getLogger().info("Loaded " + crateLocations.size() + " physical crate locations.");

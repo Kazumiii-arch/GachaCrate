@@ -9,7 +9,6 @@ import com.kazumiii.gachacrate.player.PlayerData;
 import org.bukkit.*;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
 
 import java.util.List;
@@ -22,7 +21,7 @@ public class CrateOpener {
      * Determines which reward a player should win based on weighted chances and their pity status.
      * @param player The player opening the crate.
      * @param crate The crate being opened.
-     * @return The winning Reward object.
+     * @return The winning Reward object, or null if the crate is empty.
      */
     public Reward rollForReward(Player player, Crate crate) {
         List<Reward> rewards = crate.getRewards();
@@ -30,32 +29,39 @@ public class CrateOpener {
 
         GachaCrate plugin = GachaCrate.getInstance();
         PlayerData playerData = plugin.getPlayerManager().getPlayerData(player.getUniqueId());
-        
-        if (crate.isPityEnabled() && playerData.getPityCount(crate.getName()) >= crate.getPityThreshold()) {
-            player.sendMessage("§d§lPITY!§r §eYou've been guaranteed a rare reward!");
+
+        // Guard: if player data is somehow not loaded, roll without pity logic.
+        if (playerData != null && crate.isPityEnabled() && crate.getPityThreshold() > 0) {
             Rarity minRarity = plugin.getRarityManager().getRarity(crate.getPityRarityMinimum());
-            
-            List<Reward> pityRewards = rewards.stream()
-                .filter(r -> r.getRarity().getOrder() >= minRarity.getOrder())
-                .collect(Collectors.toList());
-            
-            if (pityRewards.isEmpty()) {
-                 return performWeightedRoll(rewards);
-            } else {
-                playerData.resetPityCount(crate.getName());
-                return performWeightedRoll(pityRewards);
+            boolean pityTriggered = playerData.getPityCount(crate.getName()) >= crate.getPityThreshold();
+
+            if (pityTriggered && minRarity != null) {
+                player.sendMessage("§d§lPITY!§r §eYou've been guaranteed a rare reward!");
+                final int minOrder = minRarity.getOrder();
+
+                List<Reward> pityRewards = rewards.stream()
+                        .filter(r -> r.getRarity() != null && r.getRarity().getOrder() >= minOrder)
+                        .collect(Collectors.toList());
+
+                if (!pityRewards.isEmpty()) {
+                    playerData.resetPityCount(crate.getName());
+                    return performWeightedRoll(pityRewards);
+                }
+                // No rewards match the pity rarity — fall through to a normal roll.
             }
         }
-        
+
         Reward finalReward = performWeightedRoll(rewards);
-        
-        if (crate.isPityEnabled()) {
+
+        // Reset the pity counter when the player wins a reward at or above the minimum.
+        if (playerData != null && crate.isPityEnabled()) {
             Rarity minRarity = plugin.getRarityManager().getRarity(crate.getPityRarityMinimum());
-            if (minRarity != null && finalReward.getRarity().getOrder() >= minRarity.getOrder()) {
+            if (minRarity != null && finalReward.getRarity() != null
+                    && finalReward.getRarity().getOrder() >= minRarity.getOrder()) {
                 playerData.resetPityCount(crate.getName());
             }
         }
-        
+
         return finalReward;
     }
 
@@ -66,6 +72,10 @@ public class CrateOpener {
      */
     private Reward performWeightedRoll(List<Reward> rewards) {
         double totalWeight = rewards.stream().mapToDouble(Reward::getChance).sum();
+        if (totalWeight <= 0) {
+            return rewards.get(new Random().nextInt(rewards.size()));
+        }
+
         double randomValue = new Random().nextDouble() * totalWeight;
 
         for (Reward reward : rewards) {
@@ -76,7 +86,7 @@ public class CrateOpener {
         }
         return rewards.get(0); // Fallback
     }
-    
+
     /**
      * This handles all logic that occurs AFTER an animation is complete.
      * It plays sounds, gives the item, updates stats, and broadcasts.
@@ -101,21 +111,22 @@ public class CrateOpener {
             case 2: sound = Sound.ENTITY_EXPERIENCE_ORB_PICKUP; break;
             case 3: sound = Sound.BLOCK_BEACON_ACTIVATE; break;
             case 4: sound = Sound.ENTITY_ENDER_DRAGON_GROWL; break;
-            case 5: sound = Sound.ENTITY_WITHER_SPAWN; volume = 0.8f; break;
-            default: sound = Sound.ENTITY_PLAYER_LEVELUP; break;
+            default: sound = Sound.ENTITY_WITHER_SPAWN; volume = 0.8f; break;
         }
         player.playSound(player.getLocation(), sound, volume, pitch);
     }
 
     private void giveRewardToPlayer(Player player, Reward reward) {
         if (reward.getType() == RewardType.ITEM) {
-            if (player.getInventory().firstEmpty() == -1) {
-                player.getWorld().dropItem(player.getLocation(), reward.getItem());
+            if (reward.getItem() == null) return;
+            // Clone so the crate's stored template item is never mutated.
+            var item = reward.getItem().clone();
+            var leftover = player.getInventory().addItem(item);
+            if (!leftover.isEmpty()) {
+                leftover.values().forEach(rest -> player.getWorld().dropItem(player.getLocation(), rest));
                 player.sendMessage(ChatColor.YELLOW + "Your inventory was full, so the reward was dropped at your feet!");
-            } else {
-                player.getInventory().addItem(reward.getItem());
             }
-        } else {
+        } else if (reward.getCommand() != null) {
             String command = reward.getCommand().replace("{player}", player.getName());
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
             player.sendMessage("§aYou have received a special command reward!");
@@ -140,17 +151,17 @@ public class CrateOpener {
         if (reward.getRarity().getOrder() >= minRarity.getOrder()) {
             spawnFirework(player);
             String itemName;
-            if (reward.getType() == RewardType.ITEM) {
+            if (reward.getType() == RewardType.ITEM && reward.getItem() != null) {
                 itemName = reward.getItem().hasItemMeta() && reward.getItem().getItemMeta().hasDisplayName()
-                    ? reward.getItem().getItemMeta().getDisplayName()
-                    : reward.getItem().getType().name().replace('_', ' ');
+                        ? reward.getItem().getItemMeta().getDisplayName()
+                        : reward.getItem().getType().name().replace('_', ' ');
             } else {
                 itemName = (reward.getPreviewItem() != null && reward.getPreviewItem().hasItemMeta() && reward.getPreviewItem().getItemMeta().hasDisplayName())
-                    ? reward.getPreviewItem().getItemMeta().getDisplayName()
-                    : reward.getRarity().getDisplayName() + " §rCommand Reward";
+                        ? reward.getPreviewItem().getItemMeta().getDisplayName()
+                        : reward.getRarity().getDisplayName() + " §rCommand Reward";
             }
             String broadcastMessage = "§6[GachaCrate] §r" + player.getName() + " has won a " +
-                reward.getRarity().getDisplayName() + "§r item: " + itemName + "§r from a " + crate.getName() + " crate!";
+                    reward.getRarity().getDisplayName() + "§r item: " + itemName + "§r from a " + crate.getDisplayName() + " crate!";
             Bukkit.broadcastMessage(broadcastMessage);
         }
     }
@@ -163,4 +174,4 @@ public class CrateOpener {
         fwm.addEffect(FireworkEffect.builder().withColor(Color.ORANGE, Color.YELLOW).flicker(true).with(FireworkEffect.Type.BALL_LARGE).build());
         fw.setFireworkMeta(fwm);
     }
-                }
+}

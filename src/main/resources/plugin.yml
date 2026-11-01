@@ -1,5 +1,5 @@
 name: GachaCrate
-version: '1.4.0'
+version: '1.5.0'
 main: com.kazumiii.gachacrate.GachaCrate
 api-version: '1.20'
 author: Kazumiii
@@ -35,7 +35,7 @@ permissions:
       - gacha.user.open.*
       - gacha.user.view
       - gacha.user.stats.self
-  
+
   # Admin Permissions
   gacha.admin.create:
     description: Allows creating new crates.
@@ -75,4 +75,3 @@ permissions:
   gacha.user.open.<crate>:
     description: Allows opening a specific crate.
     default: true
-    
