@@ -14,7 +14,7 @@ import java.util.UUID;
  */
 public class Reward {
 
-    private final UUID uniqueId = UUID.randomUUID();
+    private UUID uniqueId = UUID.randomUUID();
 
     private RewardType type = RewardType.ITEM;
 
@@ -70,6 +70,13 @@ public class Reward {
     // -------------------------------------------------------------------
     public UUID getUniqueId() {
         return uniqueId;
+    }
+
+    /** Restores a persisted id. Kept stable across restarts by CrateManager. */
+    public void setUniqueId(UUID uniqueId) {
+        if (uniqueId != null) {
+            this.uniqueId = uniqueId;
+        }
     }
 
     // -------------------------------------------------------------------
