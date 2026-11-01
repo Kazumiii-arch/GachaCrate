@@ -71,6 +71,12 @@ public class ItemBuilder {
         return this;
     }
 
+    /** Adds the glow only when the condition is true (selected states). */
+    public ItemBuilder glowIf(boolean condition) {
+        this.glow = this.glow || condition;
+        return this;
+    }
+
     public ItemBuilder amount(int amount) {
         item.setAmount(Math.max(1, amount));
         return this;
@@ -113,14 +119,14 @@ public class ItemBuilder {
                 .build();
     }
 
-    /** Standard back button, bottom-left convention. */
+    /** Standard back button, bottom-center-left convention. */
     public static ItemStack backButton(String target) {
         return new ItemBuilder(Material.ARROW)
                 .name(ChatColor.RED + "❯ " + ChatColor.YELLOW + "Back" + ChatColor.GRAY + " — " + target)
                 .build();
     }
 
-    /** Standard confirm button, bottom-right convention. */
+    /** Standard confirm button. */
     public static ItemStack confirmButton(String label) {
         return new ItemBuilder(Material.LIME_STAINED_GLASS_PANE)
                 .name(ChatColor.GREEN + "" + ChatColor.BOLD + "✔ " + label)
@@ -137,11 +143,12 @@ public class ItemBuilder {
     /** Fills the border ring of an inventory with the shared border pane. */
     public static void drawBorder(org.bukkit.inventory.Inventory inventory) {
         int size = inventory.getSize();
+        int rows = size / 9;
         ItemStack pane = border();
         for (int i = 0; i < size; i++) {
             int row = i / 9;
             int col = i % 9;
-            if (row == 0 || row == size / 9 - 1 || col == 0 || col == 8) {
+            if (row == 0 || row == rows - 1 || col == 0 || col == 8) {
                 inventory.setItem(i, pane);
             }
         }
