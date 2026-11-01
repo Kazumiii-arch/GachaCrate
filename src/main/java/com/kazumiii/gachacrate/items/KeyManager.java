@@ -63,10 +63,11 @@ public class KeyManager {
                 "§e   to open the crate!"
             ));
 
-            // Add the glowing effect if enabled in the config
+            // Add the glowing effect if enabled in the config.
+            // Enchantment.LUCK is the 1.20.1 constant (LUCK_OF_THE_SEA only exists in 1.20.5+).
             if (this.isGlowing) {
-                meta.addEnchant(Enchantment.LUCK_OF_THE_SEA, 1, true); // harmless visual enchantment
-                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);             // hide the enchantment's name
+                meta.addEnchant(Enchantment.LUCK, 1, true);
+                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             }
 
             // Store the crate name in the item's data container (lowercase = registry key)
