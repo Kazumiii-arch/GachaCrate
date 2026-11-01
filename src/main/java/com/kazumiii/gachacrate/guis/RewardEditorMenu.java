@@ -22,8 +22,6 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.Arrays;
-
 /**
  * Editor for a single reward: rarity, chance, item/preview, lore and glow.
  */
@@ -165,12 +163,13 @@ public class RewardEditorMenu extends Menu {
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return;
 
+        // Enchantment.LUCK is the 1.20.1 constant (LUCK_OF_THE_SEA only exists in 1.20.5+).
         if (meta.hasItemFlag(ItemFlag.HIDE_ENCHANTS)) {
-            meta.removeEnchant(Enchantment.LUCK_OF_THE_SEA);
+            meta.removeEnchant(Enchantment.LUCK);
             meta.removeItemFlags(ItemFlag.HIDE_ENCHANTS);
             player.sendMessage(ChatColor.RED + "Glow effect disabled.");
         } else {
-            meta.addEnchant(Enchantment.LUCK_OF_THE_SEA, 1, true);
+            meta.addEnchant(Enchantment.LUCK, 1, true);
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             player.sendMessage(ChatColor.GREEN + "Glow effect enabled.");
         }
