@@ -19,9 +19,11 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Lore editor for item rewards: add, remove last, clear.
+ */
 public class LoreEditorMenu extends Menu {
 
     private final Crate crate;
@@ -35,49 +37,44 @@ public class LoreEditorMenu extends Menu {
 
     @Override
     public void open() {
-        inventory = Bukkit.createInventory(this, 27, "Edit Item Lore");
+        inventory = Bukkit.createInventory(this, 27, "§8Edit Lore" + ChatColor.DARK_GRAY + " » " + ChatColor.AQUA + crate.getDisplayName());
         updateItems();
         player.openInventory(inventory);
     }
 
-    /**
-     * Refreshes the items in the GUI, especially the item being edited.
-     */
     private void updateItems() {
-        inventory.clear(); // Clear the menu before redrawing to reflect changes
+        inventory.clear();
+        ItemBuilder.drawBorder(inventory);
 
-        // Display the item being edited in the center
-        ItemStack displayItem = reward.getItem().clone();
+        // Display the item being edited
+        ItemStack displayItem = reward.getItem() != null ? reward.getItem().clone() : new ItemStack(Material.BARRIER);
         inventory.setItem(4, displayItem);
 
-        // --- Control Buttons ---
-        ItemStack addLineButton = new ItemStack(Material.WRITABLE_BOOK);
-        ItemMeta addMeta = addLineButton.getItemMeta();
-        addMeta.setDisplayName(ChatColor.GREEN + "Add Lore Line");
-        addMeta.setLore(Arrays.asList(ChatColor.GRAY + "Adds a new line to the", ChatColor.GRAY + "bottom of the item's lore."));
-        addLineButton.setItemMeta(addMeta);
+        // Add line
+        inventory.setItem(12, new ItemBuilder(Material.WRITABLE_BOOK)
+                .name(ChatColor.GREEN + "Add Lore Line")
+                .blank()
+                .lore(ChatColor.GRAY + "Appends a line to the bottom")
+                .lore(ChatColor.GRAY + "of the item's lore.")
+                .build());
 
-        ItemStack removeLineButton = new ItemStack(Material.TNT);
-        ItemMeta removeMeta = removeLineButton.getItemMeta();
-        removeMeta.setDisplayName(ChatColor.YELLOW + "Remove Last Line");
-        removeMeta.setLore(Arrays.asList(ChatColor.GRAY + "Removes the last line", ChatColor.GRAY + "from the item's lore."));
-        removeLineButton.setItemMeta(removeMeta);
+        // Remove last line
+        inventory.setItem(13, new ItemBuilder(Material.TNT)
+                .name(ChatColor.YELLOW + "Remove Last Line")
+                .blank()
+                .lore(ChatColor.GRAY + "Removes the last line of lore.")
+                .build());
 
-        ItemStack clearLoreButton = new ItemStack(Material.LAVA_BUCKET);
-        ItemMeta clearMeta = clearLoreButton.getItemMeta();
-        clearMeta.setDisplayName(ChatColor.RED + "Clear All Lore");
-        clearMeta.setLore(Arrays.asList(ChatColor.DARK_RED + "Warning: This removes all", ChatColor.DARK_RED + "lines of lore from the item."));
-        clearLoreButton.setItemMeta(clearMeta);
+        // Clear all
+        inventory.setItem(14, new ItemBuilder(Material.LAVA_BUCKET)
+                .name(ChatColor.RED + "Clear All Lore")
+                .blank()
+                .lore(ChatColor.DARK_RED + "Warning: removes all lore lines.")
+                .build());
 
-        ItemStack backButton = new ItemStack(Material.ARROW);
-        ItemMeta backMeta = backButton.getItemMeta();
-        backMeta.setDisplayName(ChatColor.YELLOW + "« Back to Reward Editor");
-        backButton.setItemMeta(backMeta);
+        inventory.setItem(22, ItemBuilder.backButton("Reward editor"));
 
-        inventory.setItem(12, addLineButton);
-        inventory.setItem(13, removeLineButton);
-        inventory.setItem(14, clearLoreButton);
-        inventory.setItem(18, backButton);
+        ItemBuilder.fillBackground(inventory);
     }
 
     @Override
@@ -86,9 +83,18 @@ public class LoreEditorMenu extends Menu {
         ItemStack clicked = event.getCurrentItem();
         if (clicked == null || clicked.getType() == Material.AIR) return;
 
+        if (reward.getItem() == null) {
+            player.sendMessage(ChatColor.RED + "This reward has no item to edit.");
+            return;
+        }
+
         ItemStack rewardItem = reward.getItem();
         ItemMeta meta = rewardItem.getItemMeta();
-        List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+        if (meta == null) return;
+
+        List<String> lore = meta.hasLore() && meta.getLore() != null
+                ? new ArrayList<>(meta.getLore())
+                : new ArrayList<>();
 
         switch (clicked.getType()) {
             case WRITABLE_BOOK:
@@ -104,7 +110,7 @@ public class LoreEditorMenu extends Menu {
                     rewardItem.setItemMeta(meta);
                     GachaCrate.getInstance().getCrateManager().saveCrates();
                     player.sendMessage(ChatColor.GREEN + "Last line of lore removed.");
-                    updateItems(); // Refresh the GUI to show the change
+                    updateItems();
                 } else {
                     player.sendMessage(ChatColor.RED + "This item has no lore to remove.");
                 }
@@ -114,8 +120,8 @@ public class LoreEditorMenu extends Menu {
                     meta.setLore(new ArrayList<>());
                     rewardItem.setItemMeta(meta);
                     GachaCrate.getInstance().getCrateManager().saveCrates();
-                    player.sendMessage(ChatColor.GREEN + "All lore has been cleared from the item.");
-                    updateItems(); // Refresh the GUI
+                    player.sendMessage(ChatColor.GREEN + "All lore has been cleared.");
+                    updateItems();
                 } else {
                     player.sendMessage(ChatColor.RED + "This item has no lore to clear.");
                 }
