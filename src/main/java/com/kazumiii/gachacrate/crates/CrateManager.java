@@ -17,6 +17,7 @@ import java.time.format.DateTimeParseException;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Loads, caches and persists all crates. Each crate is stored as
@@ -128,6 +129,7 @@ public class CrateManager {
         int index = 0;
         for (Reward reward : crate.getRewards()) {
             String base = "rewards." + index++;
+            config.set(base + ".uuid", reward.getUniqueId().toString());
             config.set(base + ".type", reward.getType().name());
             config.set(base + ".chance", reward.getChance());
             config.set(base + ".rarity", reward.getRarityId());
@@ -183,6 +185,12 @@ public class CrateManager {
             for (String key : rewardsSection.getKeys(false)) {
                 String base = "rewards." + key;
                 Reward reward = new Reward();
+
+                // Restore the persisted id so GUI references survive restarts.
+                String uuid = config.getString(base + ".uuid");
+                if (uuid != null) {
+                    try { reward.setUniqueId(UUID.fromString(uuid)); } catch (IllegalArgumentException ignored) {}
+                }
 
                 try {
                     reward.setType(RewardType.valueOf(config.getString(base + ".type", "ITEM")));
