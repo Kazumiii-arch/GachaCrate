@@ -5,6 +5,7 @@
 package com.kazumiii.gachacrate.crates;
 
 import com.kazumiii.gachacrate.GachaCrate;
+import com.kazumiii.gachacrate.animations.AnimationType;
 import org.bukkit.Particle;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -14,7 +15,6 @@ import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -22,6 +22,10 @@ import java.util.UUID;
 /**
  * Loads, caches and persists all crates. Each crate is stored as
  * crates/<name>.yml inside the plugin data folder.
+ *
+ * ItemStacks are stored using Bukkit's native ConfigurationSerializable
+ * support (YamlConfiguration handles ItemStacks directly), which works on
+ * every API version and keeps the files human-readable.
  */
 public class CrateManager {
 
@@ -134,10 +138,11 @@ public class CrateManager {
             config.set(base + ".chance", reward.getChance());
             config.set(base + ".rarity", reward.getRarityId());
             if (reward.getItem() != null) {
-                config.set(base + ".item", Base64.getEncoder().encodeToString(reward.getItem().serializeAsBytes()));
+                // ItemStack is ConfigurationSerializable — YamlConfiguration stores it natively.
+                config.set(base + ".item", reward.getItem());
             }
             if (reward.getPreviewItem() != null) {
-                config.set(base + ".preview-item", Base64.getEncoder().encodeToString(reward.getPreviewItem().serializeAsBytes()));
+                config.set(base + ".preview-item", reward.getPreviewItem());
             }
             if (reward.getCommand() != null) {
                 config.set(base + ".command", reward.getCommand());
@@ -199,22 +204,14 @@ public class CrateManager {
                 reward.setChance(config.getDouble(base + ".chance", 100.0));
                 reward.setRarityId(config.getString(base + ".rarity", "COMMON"));
 
-                String itemData = config.getString(base + ".item");
-                if (itemData != null) {
-                    try {
-                        reward.setItem(ItemStack.deserializeBytes(Base64.getDecoder().decode(itemData)));
-                    } catch (Exception e) {
-                        plugin.getLogger().warning("Failed to decode reward item in crate " + name);
-                    }
+                ItemStack item = config.getItemStack(base + ".item");
+                if (item != null) {
+                    reward.setItem(item);
                 }
 
-                String previewData = config.getString(base + ".preview-item");
-                if (previewData != null) {
-                    try {
-                        reward.setPreviewItem(ItemStack.deserializeBytes(Base64.getDecoder().decode(previewData)));
-                    } catch (Exception e) {
-                        plugin.getLogger().warning("Failed to decode preview item in crate " + name);
-                    }
+                ItemStack previewItem = config.getItemStack(base + ".preview-item");
+                if (previewItem != null) {
+                    reward.setPreviewItem(previewItem);
                 }
 
                 String command = config.getString(base + ".command");
