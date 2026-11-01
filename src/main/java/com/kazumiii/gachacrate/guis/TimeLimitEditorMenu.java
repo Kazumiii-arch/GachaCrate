@@ -14,12 +14,12 @@ import org.bukkit.conversations.Conversation;
 import org.bukkit.conversations.ConversationFactory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.time.LocalDate;
-import java.util.Arrays;
 
+/**
+ * Time limit editor: toggle plus start/end dates for seasonal crates.
+ */
 public class TimeLimitEditorMenu extends Menu {
 
     private final Crate crate;
@@ -31,49 +31,57 @@ public class TimeLimitEditorMenu extends Menu {
 
     @Override
     public void open() {
-        inventory = Bukkit.createInventory(this, 27, "§8Time-Limit Settings: " + crate.getName());
+        inventory = Bukkit.createInventory(this, 27, "§8Time Limit: " + crate.getDisplayName());
         updateItems();
         player.openInventory(inventory);
     }
 
-    /**
-     * Refreshes the items in the GUI to show the latest settings.
-     */
     private void updateItems() {
-        // --- Enable/Disable Button ---
+        inventory.clear();
+        ItemBuilder.drawBorder(inventory);
+
         boolean enabled = crate.isTimeLimitEnabled();
-        ItemStack toggleButton = new ItemStack(enabled ? Material.LIME_DYE : Material.GRAY_DYE);
-        ItemMeta toggleMeta = toggleButton.getItemMeta();
-        toggleMeta.setDisplayName(ChatColor.GOLD + "Time Limit: " + (enabled ? ChatColor.GREEN + "ENABLED" : ChatColor.RED + "DISABLED"));
-        toggleMeta.setLore(Arrays.asList(ChatColor.YELLOW + "► Click to toggle."));
-        toggleButton.setItemMeta(toggleMeta);
 
-        // --- Start Date Button ---
-        ItemStack startDateButton = new ItemStack(Material.OAK_SIGN);
-        ItemMeta startMeta = startDateButton.getItemMeta();
-        startMeta.setDisplayName(ChatColor.AQUA + "Set Start Date");
-        String startDate = crate.getStartDate() != null ? crate.getStartDate().toString() : "Not Set";
-        startMeta.setLore(Arrays.asList("§7Current: §f" + startDate, "", ChatColor.YELLOW + "► Click to change."));
-        startDateButton.setItemMeta(startMeta);
+        // Header
+        inventory.setItem(4, new ItemBuilder(Material.CLOCK)
+                .name(ChatColor.GOLD + "Time Limit")
+                .blank()
+                .lore(ChatColor.GRAY + "Status: " + (enabled ? ChatColor.GREEN + "ENABLED" : ChatColor.RED + "DISABLED"))
+                .build());
 
-        // --- End Date Button ---
-        ItemStack endDateButton = new ItemStack(Material.DARK_OAK_SIGN);
-        ItemMeta endMeta = endDateButton.getItemMeta();
-        endMeta.setDisplayName(ChatColor.AQUA + "Set End Date");
-        String endDate = crate.getEndDate() != null ? crate.getEndDate().toString() : "Not Set";
-        endMeta.setLore(Arrays.asList("§7Current: §f" + endDate, "", ChatColor.YELLOW + "► Click to change."));
-        endDateButton.setItemMeta(endMeta);
+        // Toggle
+        inventory.setItem(11, new ItemBuilder(enabled ? Material.LIME_DYE : Material.GRAY_DYE)
+                .name(ChatColor.GOLD + "Toggle Time Limit")
+                .blank()
+                .lore(enabled
+                        ? ChatColor.GREEN + "Currently: ENABLED"
+                        : ChatColor.RED + "Currently: DISABLED")
+                .lore(ChatColor.YELLOW + "❯ Click to toggle")
+                .build());
 
-        // --- Back Button ---
-        ItemStack backButton = new ItemStack(Material.ARROW);
-        ItemMeta backMeta = backButton.getItemMeta();
-        backMeta.setDisplayName(ChatColor.RED + "« Back to Settings");
-        backButton.setItemMeta(backMeta);
+        // Start date
+        String startDate = crate.getStartDate() != null ? crate.getStartDate().toString() : "Not set";
+        inventory.setItem(13, new ItemBuilder(Material.OAK_SIGN)
+                .name(ChatColor.AQUA + "Start Date")
+                .blank()
+                .lore(ChatColor.GRAY + "Current: " + ChatColor.WHITE + startDate)
+                .blank()
+                .lore(ChatColor.YELLOW + "❯ Click to change")
+                .build());
 
-        inventory.setItem(11, toggleButton);
-        inventory.setItem(13, startDateButton);
-        inventory.setItem(15, endDateButton);
-        inventory.setItem(18, backButton);
+        // End date
+        String endDate = crate.getEndDate() != null ? crate.getEndDate().toString() : "Not set";
+        inventory.setItem(15, new ItemBuilder(Material.DARK_OAK_SIGN)
+                .name(ChatColor.AQUA + "End Date")
+                .blank()
+                .lore(ChatColor.GRAY + "Current: " + ChatColor.WHITE + endDate)
+                .blank()
+                .lore(ChatColor.YELLOW + "❯ Click to change")
+                .build());
+
+        inventory.setItem(22, ItemBuilder.backButton("Settings"));
+
+        ItemBuilder.fillBackground(inventory);
     }
 
     @Override
@@ -87,7 +95,6 @@ public class TimeLimitEditorMenu extends Menu {
             case LIME_DYE:
             case GRAY_DYE:
                 crate.setTimeLimitEnabled(!crate.isTimeLimitEnabled());
-                // Set default dates if enabling for the first time
                 if (crate.isTimeLimitEnabled() && crate.getStartDate() == null) {
                     crate.setStartDate(LocalDate.now());
                     crate.setEndDate(LocalDate.now().plusDays(7));
@@ -112,4 +119,4 @@ public class TimeLimitEditorMenu extends Menu {
                 break;
         }
     }
-        }
+}
