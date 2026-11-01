@@ -15,11 +15,10 @@ import org.bukkit.conversations.Conversation;
 import org.bukkit.conversations.ConversationFactory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.Arrays;
-
+/**
+ * Pity system editor: toggle, threshold, and minimum guaranteed rarity.
+ */
 public class PityEditorMenu extends Menu {
 
     private final Crate crate;
@@ -31,65 +30,65 @@ public class PityEditorMenu extends Menu {
 
     @Override
     public void open() {
-        inventory = Bukkit.createInventory(this, 27, "§8Pity Settings: " + crate.getName());
+        inventory = Bukkit.createInventory(this, 27, "§8Pity: " + crate.getDisplayName());
         updateItems();
         player.openInventory(inventory);
     }
 
-    /**
-     * Refreshes the items in the GUI to show the latest settings.
-     */
     private void updateItems() {
-        // --- Enable/Disable Button ---
+        inventory.clear();
+        ItemBuilder.drawBorder(inventory);
+
         boolean enabled = crate.isPityEnabled();
-        ItemStack toggleButton = new ItemStack(enabled ? Material.LIME_DYE : Material.GRAY_DYE);
-        ItemMeta toggleMeta = toggleButton.getItemMeta();
-        toggleMeta.setDisplayName(ChatColor.GOLD + "Pity System: " + (enabled ? ChatColor.GREEN + "ENABLED" : ChatColor.RED + "DISABLED"));
-        toggleMeta.setLore(Arrays.asList(ChatColor.YELLOW + "► Click to toggle."));
-        toggleButton.setItemMeta(toggleMeta);
 
-        // --- Threshold Button ---
-        ItemStack thresholdButton = new ItemStack(Material.EXPERIENCE_BOTTLE);
-        ItemMeta thresholdMeta = thresholdButton.getItemMeta();
-        thresholdMeta.setDisplayName(ChatColor.AQUA + "Set Pity Threshold");
-        thresholdMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "Opens until pity is triggered.",
-                "§7Current: §f" + crate.getPityThreshold(),
-                "",
-                ChatColor.YELLOW + "► Click to change."
-        ));
-        thresholdButton.setItemMeta(thresholdMeta);
+        // Header
+        inventory.setItem(4, new ItemBuilder(Material.DIAMOND)
+                .name(ChatColor.LIGHT_PURPLE + "Pity System")
+                .blank()
+                .lore(ChatColor.GRAY + "Status: " + (enabled ? ChatColor.GREEN + "ENABLED" : ChatColor.RED + "DISABLED"))
+                .build());
 
-        // --- Rarity Button ---
-        ItemStack rarityButton = new ItemStack(Material.NAME_TAG);
-        ItemMeta rarityMeta = rarityButton.getItemMeta();
-        rarityMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "Set Minimum Pity Rarity");
-        String rarityName = crate.getPityRarityMinimum() != null ? crate.getPityRarityMinimum() : "Not Set";
-        rarityMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "The minimum rarity guaranteed.",
-                "§7Current: §f" + rarityName,
-                "",
-                ChatColor.YELLOW + "► Click to change."
-        ));
-        rarityButton.setItemMeta(rarityMeta);
+        // Toggle
+        inventory.setItem(11, new ItemBuilder(enabled ? Material.LIME_DYE : Material.GRAY_DYE)
+                .name(ChatColor.GOLD + "Toggle Pity")
+                .blank()
+                .lore(enabled
+                        ? ChatColor.GREEN + "Currently: ENABLED"
+                        : ChatColor.RED + "Currently: DISABLED")
+                .lore(ChatColor.YELLOW + "❯ Click to toggle")
+                .build());
 
-        // --- Back Button ---
-        ItemStack backButton = new ItemStack(Material.ARROW);
-        ItemMeta backMeta = backButton.getItemMeta();
-        backMeta.setDisplayName(ChatColor.RED + "« Back to Settings");
-        backButton.setItemMeta(backMeta);
+        // Threshold
+        inventory.setItem(13, new ItemBuilder(Material.EXPERIENCE_BOTTLE)
+                .name(ChatColor.AQUA + "Pity Threshold")
+                .blank()
+                .lore(ChatColor.GRAY + "Opens until a guaranteed win: " + ChatColor.WHITE + crate.getPityThreshold())
+                .blank()
+                .lore(ChatColor.YELLOW + "❯ Click to change")
+                .build());
 
-        inventory.setItem(11, toggleButton);
-        inventory.setItem(13, thresholdButton);
-        inventory.setItem(15, rarityButton);
-        inventory.setItem(18, backButton);
+        // Rarity
+        String rarityName = crate.getPityRarityMinimum() != null
+                ? crate.getPityRarityMinimum()
+                : "Not set";
+        inventory.setItem(15, new ItemBuilder(Material.NAME_TAG)
+                .name(ChatColor.LIGHT_PURPLE + "Minimum Rarity")
+                .blank()
+                .lore(ChatColor.GRAY + "Guaranteed at or above: " + ChatColor.WHITE + rarityName)
+                .blank()
+                .lore(ChatColor.YELLOW + "❯ Click to change")
+                .build());
+
+        inventory.setItem(22, ItemBuilder.backButton("Settings"));
+
+        ItemBuilder.fillBackground(inventory);
     }
 
     @Override
     public void handleMenu(InventoryClickEvent event) {
         event.setCancelled(true);
         if (event.getCurrentItem() == null || event.getCurrentItem().getType() == Material.AIR) return;
-        
+
         ConversationFactory cf = new ConversationFactory(GachaCrate.getInstance());
 
         switch (event.getCurrentItem().getType()) {
@@ -97,7 +96,7 @@ public class PityEditorMenu extends Menu {
             case GRAY_DYE:
                 crate.setPityEnabled(!crate.isPityEnabled());
                 GachaCrate.getInstance().getCrateManager().saveCrates();
-                updateItems(); // Refresh the GUI to show the change
+                updateItems();
                 break;
             case EXPERIENCE_BOTTLE:
                 player.closeInventory();
@@ -106,7 +105,6 @@ public class PityEditorMenu extends Menu {
                 break;
             case NAME_TAG:
                 player.closeInventory();
-                // Note: The RarityPrompt needs to know which menu to re-open on completion/cancellation.
                 Conversation rarityConvo = cf.withFirstPrompt(new RarityPrompt("pity-rarity", crate, this)).withLocalEcho(false).buildConversation(player);
                 rarityConvo.begin();
                 break;
