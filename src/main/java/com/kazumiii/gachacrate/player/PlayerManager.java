@@ -1,6 +1,7 @@
 package com.kazumiii.gachacrate.player;
 
 import com.kazumiii.gachacrate.GachaCrate;
+import com.kazumiii.gachacrate.history.WinRecord;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -13,6 +14,10 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -59,7 +64,19 @@ public class PlayerManager {
     }
 
     public void loadPlayerData(Player player) {
-        online.put(player.getUniqueId(), readFromDisk(player.getUniqueId()));
+        PlayerData data = readFromDisk(player.getUniqueId());
+        data.setLastKnownName(player.getName());
+        online.put(player.getUniqueId(), data);
+    }
+
+    /** The folder with one file per player (used to build the leaderboard). */
+    public File getDataFolder() {
+        return dataFolder;
+    }
+
+    /** Reads a player file without touching the online cache (safe to call off the main thread). */
+    public PlayerData readFile(UUID uuid) {
+        return readFromDisk(uuid);
     }
 
     /** Saves and unloads a player who is leaving. */
@@ -139,6 +156,21 @@ public class PlayerManager {
             }
         }
         data.setHasReceivedFirstKey(config.getBoolean("has-received-first-key", false));
+        data.setLastKnownName(config.getString("name"));
+        ConfigurationSection daily = config.getConfigurationSection("daily-claims");
+        if (daily != null) {
+            for (String crate : daily.getKeys(false)) {
+                try {
+                    data.getDailyClaims().put(crate.toLowerCase(Locale.ROOT), LocalDate.parse(daily.getString(crate, "")));
+                } catch (DateTimeParseException ignored) {
+                    // Skip a broken date.
+                }
+            }
+        }
+        for (String line : config.getStringList("history")) {
+            WinRecord record = WinRecord.parse(line);
+            if (record != null) data.getHistory().add(record);
+        }
         data.setDirty(false);
         return data;
     }
@@ -148,6 +180,11 @@ public class PlayerManager {
         data.getCratesOpenedMap().forEach((crate, count) -> config.set("crates-opened." + crate, count));
         data.getPityCounts().forEach((crate, count) -> config.set("pity-counts." + crate, count));
         config.set("has-received-first-key", data.hasReceivedFirstKey());
+        if (data.getLastKnownName() != null) config.set("name", data.getLastKnownName());
+        data.getDailyClaims().forEach((crate, day) -> config.set("daily-claims." + crate, day.toString()));
+        List<String> history = new ArrayList<>();
+        for (WinRecord record : data.getHistory()) history.add(record.serialize());
+        if (!history.isEmpty()) config.set("history", history);
         return config.saveToString();
     }
 

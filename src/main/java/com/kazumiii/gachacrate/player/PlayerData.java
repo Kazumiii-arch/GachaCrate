@@ -1,6 +1,11 @@
 package com.kazumiii.gachacrate.player;
 
+import com.kazumiii.gachacrate.history.WinRecord;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -13,6 +18,9 @@ public class PlayerData {
     private final UUID playerUUID;
     private final Map<String, Integer> cratesOpened = new HashMap<>();
     private final Map<String, Integer> pityCounts = new HashMap<>();
+    private final Map<String, LocalDate> dailyClaims = new HashMap<>();
+    private final List<WinRecord> history = new ArrayList<>(); // Newest first.
+    private String lastKnownName;
     private boolean hasReceivedFirstKey;
     private boolean dirty;
 
@@ -72,6 +80,44 @@ public class PlayerData {
 
     public void resetPityCount(String crateName) {
         pityCounts.put(id(crateName), 0);
+        dirty = true;
+    }
+
+    // --- Name (for leaderboards) ---
+    public String getLastKnownName() {
+        return lastKnownName;
+    }
+
+    public void setLastKnownName(String name) {
+        if (name != null && !name.equals(lastKnownName)) {
+            lastKnownName = name;
+            dirty = true;
+        }
+    }
+
+    // --- Daily keys ---
+    public Map<String, LocalDate> getDailyClaims() {
+        return dailyClaims;
+    }
+
+    public boolean hasClaimedDaily(String crateName, LocalDate today) {
+        return today.equals(dailyClaims.get(id(crateName)));
+    }
+
+    public void setDailyClaimed(String crateName, LocalDate day) {
+        dailyClaims.put(id(crateName), day);
+        dirty = true;
+    }
+
+    // --- Win history ---
+    public List<WinRecord> getHistory() {
+        return history;
+    }
+
+    /** Adds a win at the top and keeps at most {@code max} entries. */
+    public void addWin(WinRecord record, int max) {
+        history.add(0, record);
+        while (history.size() > Math.max(0, max)) history.remove(history.size() - 1);
         dirty = true;
     }
 

@@ -218,6 +218,8 @@ public class CrateOpener {
                 else data.incrementPityCount(crate.getName());
             }
         }
+        plugin.getHistoryManager().record(player, data, crate, reward);
+        plugin.getLeaderboardManager().update(data);
         return new Roll(reward, pity);
     }
 

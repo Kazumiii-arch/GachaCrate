@@ -15,6 +15,11 @@ A gacha crate plugin for Minecraft Survival servers (Spigot / Paper 1.20 – 1.2
 - **Physical crates** with idle particle effects and holograms (holograms need [DecentHolograms](https://www.spigotmc.org/resources/96927/)).
 - **Announcements** for rare wins, with a firework that doesn't hurt anyone.
 - **PlaceholderAPI** placeholders, and PlaceholderAPI placeholders also work inside reward commands.
+- **Player menu** (`/gacha`): browse crates, claim daily keys, open the shop, and see wins and leaderboards.
+- **Daily free keys**: each crate can give players free keys once a day (`/gacha daily`), with a reminder when they join.
+- **Key shop**: sell keys for in-game money (`/gacha shop`, `/gacha buy`). Needs [Vault](https://www.spigotmc.org/resources/34315/) and an economy plugin such as EssentialsX.
+- **Win history**: players see their last wins, and everyone sees a "Recent Big Wins" feed (`/gacha history`, `/gacha wins`).
+- **Leaderboards**: top crate openers overall or per crate (`/gacha top`), also available as placeholders for holograms.
 - **Protection**: crate blocks can't be broken, blown up or pushed by pistons. Keys can't be placed or used for crafting.
 - Player data is auto-saved, and an open crate's reward is never lost on logout, closing the menu or a server stop.
 
@@ -22,7 +27,7 @@ A gacha crate plugin for Minecraft Survival servers (Spigot / Paper 1.20 – 1.2
 
 1. Download the jar from the latest **Actions** run (Build GachaCrate Plugin → Artifacts) or a release.
 2. Put it in your server's `plugins` folder and restart.
-3. Optional: install DecentHolograms (holograms) and PlaceholderAPI (placeholders).
+3. Optional: install DecentHolograms (holograms), PlaceholderAPI (placeholders) and Vault + an economy plugin (key shop).
 
 ## Quick start
 
@@ -37,8 +42,15 @@ A gacha crate plugin for Minecraft Survival servers (Spigot / Paper 1.20 – 1.2
 
 | Command | What it does | Permission |
 |---|---|---|
-| `/gacha` | Admin menu (players see help) | `gacha.admin.edit` |
+| `/gacha` | Admin menu (players get the player menu) | `gacha.admin.edit` |
+| `/gacha menu` | Player menu (what players get from `/gacha`) | — |
 | `/gacha view <crate>` | Preview rewards and chances | `gacha.user.view` |
+| `/gacha daily` | Claim today's free keys | `gacha.user.daily` |
+| `/gacha shop` | Open the key shop | `gacha.user.shop` |
+| `/gacha buy <crate> [amount]` | Buy keys | `gacha.user.shop` |
+| `/gacha history [player]` | Recent wins | `gacha.user.history` / `gacha.admin.history.other` |
+| `/gacha wins` | Server-wide recent big wins | `gacha.user.history` |
+| `/gacha top [crate]` | Top crate openers | `gacha.user.top` |
 | `/gacha stats [player]` | Opening stats and pity | `gacha.user.stats.self` / `gacha.admin.stats.other` |
 | `/gacha list` | List crates | `gacha.admin.edit` |
 | `/gacha edit <crate>` | Edit a crate in the menu | `gacha.admin.edit` |
@@ -57,6 +69,12 @@ Aliases: `/gc`, `/crate`.
 
 Every crate also has its own permission, `gacha.user.open.<crate>`, which everyone has by default. Negate it (for example with LuckPerms) to lock a crate to certain ranks.
 
+## Daily keys and the shop
+
+Open a crate's settings (`/gacha edit <crate>`):
+- **Daily Free Keys**: click to set how many keys each player gets per day (0 = off). The count resets at midnight, server time.
+- **Key Price**: click and type a price (0 = not for sale). Players can buy from `/gacha shop`, `/gacha buy`, or the **Buy Keys** button in the crate preview.
+
 ## Weights and chances
 
 A reward's **weight** is how likely it is compared to the others. A reward with weight 10 is twice as likely as one with weight 5. Its real chance is its weight divided by the total weight of the crate, and the preview shows that %.
@@ -72,6 +90,10 @@ A reward's **weight** is how likely it is compared to the others. A reward with 
 | `%gachacrate_opened_<crate>%` | Times opened |
 | `%gachacrate_opened_total%` | Total crates opened |
 | `%gachacrate_keys_<crate>%` | Keys in inventory |
+| `%gachacrate_daily_<crate>%` | `Ready` or `Claimed` |
+| `%gachacrate_rank%` | The player's leaderboard position |
+| `%gachacrate_top_<n>_name%` / `%gachacrate_top_<n>_value%` | Leaderboard, all crates (e.g. `top_1_name`) |
+| `%gachacrate_top_<crate>_<n>_name%` / `_value%` | Leaderboard for one crate |
 
 ## Building
 

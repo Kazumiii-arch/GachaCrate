@@ -105,6 +105,43 @@ public class CrateSettingsMenu extends Menu {
             plugin().getCrateOpener().openFree(player, crate, 1);
         });
 
+        button(30, Items.of(Material.SUNFLOWER).name("&eDaily Free Keys: &f" + crate.getDailyFreeKeys())
+                .lore("&7Keys each player can claim", "&7once a day with &f/gacha daily&7.", "&70 = off.", "",
+                        "&7Left-click: &a+1  &7Right-click: &c-1", "&7Shift-click: set to 0").build(), e -> {
+            if (e.isShiftClick()) crate.setDailyFreeKeys(0);
+            else crate.setDailyFreeKeys(crate.getDailyFreeKeys() + (e.isRightClick() ? -1 : 1));
+            plugin().getCrateManager().saveCrates();
+            refresh();
+        });
+
+        boolean economy = plugin().getShopManager().isEconomyReady();
+        button(32, Items.of(Material.GOLD_INGOT).name("&6Key Price: &f"
+                        + (crate.getKeyPrice() > 0 ? plugin().getShopManager().format(crate.getKeyPrice()) : "Not for sale"))
+                .lore("&7Players can buy keys in", "&7the shop for this price.", "&70 = not for sale.",
+                        economy ? "" : "&c⚠ Needs Vault + an economy plugin.", "",
+                        "&e► Click to set the price", "&e► Right-click to stop selling").build(), e -> {
+            if (e.isRightClick()) {
+                crate.setKeyPrice(0);
+                plugin().getCrateManager().saveCrates();
+                refresh();
+                return;
+            }
+            ChatPrompt.ask(player, "&eType the price of one key &7(e.g. 500, or 0 to stop selling)", input -> {
+                double price;
+                try {
+                    price = Double.parseDouble(input.replace(",", ""));
+                } catch (NumberFormatException ex) {
+                    return "That's not a number.";
+                }
+                if (price < 0 || Double.isNaN(price) || Double.isInfinite(price)) return "The price can't be negative.";
+                crate.setKeyPrice(price);
+                plugin().getCrateManager().saveCrates();
+                Text.send(player, price > 0 ? "&aKey price set to " + plugin().getShopManager().format(price) + "."
+                        : "&aKeys for this crate are no longer sold.");
+                return null;
+            }, this::open);
+        });
+
         button(36, Items.of(Material.ARROW).name("&e« Back to Crate List").build(),
                 e -> new MainMenu(player).open());
 

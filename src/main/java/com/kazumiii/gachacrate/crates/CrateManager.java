@@ -122,6 +122,9 @@ public class CrateManager {
             section.set("pity-system.threshold", crate.getPityThreshold());
             section.set("pity-system.pity-rarity-minimum", crate.getPityRarityMinimum());
 
+            section.set("daily-free-keys", crate.getDailyFreeKeys());
+            section.set("key-price", crate.getKeyPrice());
+
             section.set("time-limit.enabled", crate.isTimeLimitEnabled());
             if (crate.getStartDate() != null) section.set("time-limit.start-date", crate.getStartDate().toString());
             if (crate.getEndDate() != null) section.set("time-limit.end-date", crate.getEndDate().toString());
@@ -209,6 +212,9 @@ public class CrateManager {
         if (crate.isPityEnabled() && plugin.getRarityManager().getRarity(crate.getPityRarityMinimum()) == null) {
             plugin.getLogger().warning("Crate '" + crateName + "': pity is on but its minimum rarity isn't set or doesn't exist. Pity won't trigger until you set it.");
         }
+
+        crate.setDailyFreeKeys(section.getInt("daily-free-keys", 0));
+        crate.setKeyPrice(section.getDouble("key-price", 0));
 
         crate.setTimeLimitEnabled(section.getBoolean("time-limit.enabled", false));
         crate.setStartDate(parseDate(crateName, section.getString("time-limit.start-date")));

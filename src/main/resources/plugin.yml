@@ -5,7 +5,7 @@ api-version: '1.20'
 author: Kazumiii
 description: A Minecraft Survival server gacha crate plugin with full in-game editing.
 
-softdepend: [DecentHolograms, PlaceholderAPI]
+softdepend: [DecentHolograms, PlaceholderAPI, Vault]
 
 commands:
   gacha:
@@ -36,6 +36,7 @@ permissions:
       gacha.admin.open: true
       gacha.admin.resetpity: true
       gacha.admin.reload: true
+      gacha.admin.history.other: true
 
   gacha.user:
     description: Grants access to all user-level commands and actions.
@@ -44,6 +45,10 @@ permissions:
       gacha.user.view: true
       gacha.user.stats.self: true
       gacha.user.massopen: true
+      gacha.user.daily: true
+      gacha.user.shop: true
+      gacha.user.history: true
+      gacha.user.top: true
 
   # Admin permissions
   gacha.admin.create:
@@ -79,6 +84,9 @@ permissions:
   gacha.admin.reload:
     description: Allows reloading the plugin's files.
     default: op
+  gacha.admin.history.other:
+    description: Allows viewing other players' win history.
+    default: op
 
   # User permissions
   gacha.user.view:
@@ -89,6 +97,18 @@ permissions:
     default: true
   gacha.user.massopen:
     description: Allows sneak + right-click to open many keys at once.
+    default: true
+  gacha.user.daily:
+    description: Allows claiming daily free keys.
+    default: true
+  gacha.user.shop:
+    description: Allows buying keys in the shop.
+    default: true
+  gacha.user.history:
+    description: Allows viewing your own wins and the server's recent big wins.
+    default: true
+  gacha.user.top:
+    description: Allows viewing the leaderboard.
     default: true
   gacha.user.open.*:
     description: >-

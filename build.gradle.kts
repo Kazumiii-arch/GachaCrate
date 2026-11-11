@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "com.kazumiii"
-version = "2.0.0"
+version = "2.1.0"
 
 repositories {
     mavenCentral()
@@ -21,6 +21,9 @@ dependencies {
     // Optional integrations (soft dependencies, only needed to compile).
     compileOnly("me.clip:placeholderapi:2.11.6")
     compileOnly("com.github.decentsoftware-eu:decentholograms:2.8.6")
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7.1") {
+        isTransitive = false // It would pull in an old Bukkit version.
+    }
 }
 
 java {

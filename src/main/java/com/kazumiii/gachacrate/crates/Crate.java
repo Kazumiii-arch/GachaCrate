@@ -28,6 +28,9 @@ public class Crate {
     private LocalDate startDate;
     private LocalDate endDate;
 
+    private int dailyFreeKeys = 0;
+    private double keyPrice = 0;
+
     private AnimationType animationType = AnimationType.REEL;
     private OpeningMode openingMode = OpeningMode.PHYSICAL_BLOCKS;
     private Particle idleParticle;
@@ -110,6 +113,15 @@ public class Crate {
         if (startDate != null && today.isBefore(startDate)) return false;
         return endDate == null || !today.isAfter(endDate);
     }
+
+    // --- Daily keys & shop ---
+    /** Free keys each player can claim once per day with /gacha daily. 0 = off. */
+    public int getDailyFreeKeys() { return dailyFreeKeys; }
+    public void setDailyFreeKeys(int dailyFreeKeys) { this.dailyFreeKeys = Math.max(0, dailyFreeKeys); }
+
+    /** Price of one key in the shop (needs Vault). 0 = not for sale. */
+    public double getKeyPrice() { return keyPrice; }
+    public void setKeyPrice(double keyPrice) { this.keyPrice = Math.max(0, keyPrice); }
 
     // --- Looks ---
     public AnimationType getAnimationType() { return animationType; }

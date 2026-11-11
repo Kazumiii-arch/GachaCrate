@@ -103,5 +103,23 @@ public class CratePreviewMenu extends Menu {
             });
         }
         button(49, Items.of(Material.BARRIER).name("&cClose").build(), e -> player.closeInventory());
+
+        // Buy keys here if the crate is sold in the shop.
+        if (crate.getKeyPrice() > 0 && player.hasPermission("gacha.user.shop") && plugin().getShopManager().isEconomyReady()) {
+            String price = plugin().getShopManager().format(crate.getKeyPrice());
+            button(45, Items.of(Material.EMERALD).name("&aBuy Keys")
+                    .lore("&7Price: &f" + price + " &7each", "", "&a► Click: buy 1", "&a► Shift-click: buy 10").build(), e -> {
+                if (plugin().getShopManager().buyKeys(player, crate, e.isShiftClick() ? 10 : 1)) refresh();
+            });
+        }
+
+        // Claim today's free keys for this crate.
+        if (plugin().getShopManager().getClaimableDaily(player).contains(crate)) {
+            button(53, Items.of(Material.SUNFLOWER).name("&a&lFree Daily Keys!")
+                    .lore("&7Claim today's free keys", "&7for all crates.", "", "&a► Click to claim").glow(true).build(), e -> {
+                plugin().getShopManager().claimDaily(player);
+                refresh();
+            });
+        }
     }
 }

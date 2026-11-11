@@ -31,6 +31,27 @@ broadcast-minimum-rarity: "MYTHIC"
 # Launch a harmless firework when an announced reward is won.
 broadcast-firework: true
 
+# --- DAILY FREE KEYS ---
+# Set how many free keys a crate gives per day in its settings menu (/gacha edit <crate>).
+# Players claim them with /gacha daily or from the /gacha menu. Resets at midnight (server time).
+daily:
+  # Tell players on join when they have keys to claim.
+  join-reminder: true
+
+# --- KEY SHOP (needs Vault + an economy plugin like EssentialsX) ---
+# Set a crate's key price in its settings menu. Players buy with /gacha shop or /gacha buy.
+shop:
+  max-keys-per-purchase: 64
+
+# --- WIN HISTORY ---
+history:
+  # How many recent wins each player can see in /gacha history.
+  per-player: 15
+  # How many wins the server-wide "Recent Big Wins" feed keeps (/gacha wins).
+  server-wide: 30
+  # Only wins of this rarity or better go into the server-wide feed.
+  server-wide-minimum-rarity: "EPIC"
+
 # --- DATA ---
 # How often player data (pity, stats) is saved, in minutes. 0 = only on quit/shutdown.
 autosave-minutes: 5

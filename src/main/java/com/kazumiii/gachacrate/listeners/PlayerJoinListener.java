@@ -1,6 +1,8 @@
 package com.kazumiii.gachacrate.listeners;
 
 import com.kazumiii.gachacrate.GachaCrate;
+import com.kazumiii.gachacrate.util.Text;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -22,7 +24,19 @@ public class PlayerJoinListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onJoin(PlayerJoinEvent event) {
-        plugin.getPlayerManager().loadPlayerData(event.getPlayer());
+        Player player = event.getPlayer();
+        plugin.getPlayerManager().loadPlayerData(player);
+
+        // Remind players about free daily keys a moment after they join.
+        if (plugin.getConfig().getBoolean("daily.join-reminder", true)) {
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                if (!player.isOnline()) return;
+                int count = plugin.getShopManager().getClaimableDaily(player).size();
+                if (count > 0) {
+                    Text.send(player, "&aYou have free daily keys waiting! Type &e/gacha daily &ato claim them.");
+                }
+            }, 60L);
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
