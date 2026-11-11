@@ -9,7 +9,17 @@ A gacha crate plugin for Minecraft Survival servers (Spigot / Paper 1.20 – 1.2
 - **Real chances**: the preview shows each reward's actual % chance.
 - **Pity system**: after X unlucky opens in a row, the next open is guaranteed to be a chosen rarity or better.
 - **Time-limited crates** with a start and end date.
-- **Animations**: Reel, Roulette or Instant. Players can close the menu to skip, and the reward is still given.
+- **Animations**:
+  - **Reel**: items scroll past and slow down, often stopping just next to the jackpot.
+  - **Roulette**: lights spin around the edge while the prize changes.
+  - **Card Pick**: pick 1 of 9 face-down cards, then the rest flip to show what you missed.
+  - **In-World Show**: the prize rises out of the crate block, spins and bursts into particles, and everyone nearby can watch.
+  - **Instant**: no animation.
+  Players can close a menu animation to skip it, and the reward is still given.
+- **Gacha-style reveals**: the best rarity gets a gold title, the totem animation and a fanfare, and the second best gets its own flashy title.
+- **Starter crates**: `/gacha setup` (or the button in the admin menu) creates ready-made Vote, Rare, Legendary and Event crates with balanced rewards.
+- **Hex colors**: use `&#RRGGBB` anywhere colors are allowed (crate names, lore, messages).
+- **Update checker**: tells the console and admins when a new version is released.
 - **Opening modes**: right-click a crate block with a key, or right-click anywhere while holding the key.
 - **Mass open**: sneak + right-click to open a whole stack of keys at once, with a summary in chat.
 - **Physical crates** with idle particle effects and holograms (holograms need [DecentHolograms](https://www.spigotmc.org/resources/96927/)).
@@ -63,6 +73,7 @@ A gacha crate plugin for Minecraft Survival servers (Spigot / Paper 1.20 – 1.2
 | `/gacha resetpity <player> <crate\|all>` | Reset pity | `gacha.admin.resetpity` |
 | `/gacha setblock <crate>` | Make the block you look at a crate | `gacha.admin.setblock` |
 | `/gacha removeblock` | Remove the crate you look at | `gacha.admin.setblock` |
+| `/gacha setup` | Create the 4 starter crates | `gacha.admin.create` |
 | `/gacha reload` | Reload all files | `gacha.admin.reload` |
 
 Aliases: `/gc`, `/crate`.
@@ -102,6 +113,14 @@ gradle build
 ```
 
 The jar ends up in `build/libs/`. GitHub Actions builds it automatically on every push to `main`.
+
+## Releasing a new version
+
+1. Change `version` in `build.gradle.kts` (e.g. `2.3.0`) and merge to `main`.
+2. On GitHub, go to **Releases → Draft a new release**, create the tag `v2.3.0`, and publish.
+3. The **Release GachaCrate** workflow builds the jar and attaches it to the release.
+
+Every server running GachaCrate checks for the latest release, logs a message in the console, and tells admins (`gacha.admin.update`) when they join.
 
 ## Upgrading from 1.x
 

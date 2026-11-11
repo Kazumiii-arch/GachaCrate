@@ -38,7 +38,7 @@ public class AnimationSelectorMenu extends Menu {
     protected void draw() {
         fill(Material.GRAY_STAINED_GLASS_PANE);
         AnimationType[] types = AnimationType.values();
-        int[] slots = {11, 13, 15};
+        int[] slots = {9, 11, 13, 15, 17};
         for (int i = 0; i < types.length && i < slots.length; i++) {
             AnimationType type = types[i];
             boolean selected = crate.getAnimationType() == type;

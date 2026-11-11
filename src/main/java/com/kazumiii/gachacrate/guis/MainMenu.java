@@ -3,6 +3,7 @@ package com.kazumiii.gachacrate.guis;
 import com.kazumiii.gachacrate.conversation.ChatPrompt;
 import com.kazumiii.gachacrate.crates.Crate;
 import com.kazumiii.gachacrate.crates.CrateManager;
+import com.kazumiii.gachacrate.crates.StarterCrates;
 import com.kazumiii.gachacrate.util.Items;
 import com.kazumiii.gachacrate.util.Text;
 import org.bukkit.Material;
@@ -100,6 +101,22 @@ public class MainMenu extends Menu {
             plugin().reloadAll();
             Text.send(player, "&aGachaCrate reloaded.");
         });
+
+        button(46, Items.of(Material.CHEST_MINECART).name("&dStarter Crates")
+                .lore("&7Creates 4 ready-made crates:", "&aVote&7, &9Rare&7, &6Legendary &7and &dEvent&7,",
+                        "&7with balanced rewards to edit.", "", "&7Existing crates aren't touched.").build(), e -> {
+            if (!player.hasPermission("gacha.admin.create")) {
+                Text.send(player, "&cYou don't have permission to create crates.");
+                return;
+            }
+            java.util.List<String> created = new StarterCrates(plugin()).create();
+            Text.send(player, created.isEmpty() ? "&eThe starter crates already exist."
+                    : "&aCreated: &e" + String.join(", ", created));
+            refresh();
+        });
+
+        button(52, Items.of(Material.PLAYER_HEAD).name("&bPlayer Menu")
+                .lore("&7See what players see", "&7with /gacha.").build(), e -> new PlayerMenu(player).open());
 
         button(50, Items.of(Material.NETHER_STAR).name("&a✚ Create New Crate")
                 .lore("&7Click and type a name in chat.").build(), e -> {

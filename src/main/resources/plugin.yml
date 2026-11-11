@@ -37,6 +37,7 @@ permissions:
       gacha.admin.resetpity: true
       gacha.admin.reload: true
       gacha.admin.history.other: true
+      gacha.admin.update: true
 
   gacha.user:
     description: Grants access to all user-level commands and actions.
@@ -86,6 +87,9 @@ permissions:
     default: op
   gacha.admin.history.other:
     description: Allows viewing other players' win history.
+    default: op
+  gacha.admin.update:
+    description: Get told on join when a new GachaCrate version is out.
     default: op
 
   # User permissions

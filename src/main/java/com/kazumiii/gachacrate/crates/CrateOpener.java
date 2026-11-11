@@ -1,15 +1,21 @@
 package com.kazumiii.gachacrate.crates;
 
 import com.kazumiii.gachacrate.GachaCrate;
-import com.kazumiii.gachacrate.animations.AnimationType;
+import com.kazumiii.gachacrate.animations.WorldAnimation;
+import com.kazumiii.gachacrate.guis.CardPickMenu;
 import com.kazumiii.gachacrate.guis.CrateAnimationMenu;
 import com.kazumiii.gachacrate.holograms.PlaceholderHook;
 import com.kazumiii.gachacrate.player.PlayerData;
+import com.kazumiii.gachacrate.util.Compat;
 import com.kazumiii.gachacrate.util.Text;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Color;
+import org.bukkit.EntityEffect;
 import org.bukkit.FireworkEffect;
+import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
@@ -22,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -37,7 +44,7 @@ public class CrateOpener {
 
     private final GachaCrate plugin;
     private final NamespacedKey fireworkTag;
-    private final Map<UUID, CrateAnimationMenu> activeAnimations = new HashMap<>();
+    private final Map<UUID, OpeningSession> activeAnimations = new HashMap<>();
 
     public CrateOpener(GachaCrate plugin) {
         this.plugin = plugin;
@@ -93,6 +100,13 @@ public class CrateOpener {
      * @param mass true to open as many keys as allowed at once (sneak + right-click)
      */
     public void openWithKey(Player player, Crate crate, boolean mass) {
+        openWithKey(player, crate, mass, null);
+    }
+
+    /**
+     * @param crateBlock the crate block that was clicked, or null (used by the in-world animation)
+     */
+    public void openWithKey(Player player, Crate crate, boolean mass, Location crateBlock) {
         if (!canOpen(player, crate)) return;
 
         ItemStack hand = player.getInventory().getItemInMainHand();
@@ -122,7 +136,7 @@ public class CrateOpener {
         if (amount > 1) {
             openMany(player, crate, amount);
         } else {
-            openOne(player, crate);
+            openOne(player, crate, crateBlock);
         }
     }
 
@@ -137,18 +151,28 @@ public class CrateOpener {
             return;
         }
         if (amount > 1) openMany(player, crate, amount);
-        else openOne(player, crate);
+        else openOne(player, crate, null);
     }
 
-    private void openOne(Player player, Crate crate) {
+    private void openOne(Player player, Crate crate, Location crateBlock) {
         Roll roll = roll(player, crate);
-        if (crate.getAnimationType() == AnimationType.INSTANT) {
-            deliver(player, crate, roll, false);
-            return;
+        OpeningSession session;
+        switch (crate.getAnimationType()) {
+            case INSTANT:
+                deliver(player, crate, roll, false);
+                return;
+            case WORLD:
+                session = new WorldAnimation(plugin, player, crate, roll, crateBlock);
+                break;
+            case CARDS:
+                session = new CardPickMenu(player, crate, roll);
+                break;
+            default:
+                session = new CrateAnimationMenu(player, crate, roll);
+                break;
         }
-        CrateAnimationMenu menu = new CrateAnimationMenu(player, crate, roll);
-        activeAnimations.put(player.getUniqueId(), menu);
-        menu.open();
+        activeAnimations.put(player.getUniqueId(), session);
+        session.start();
     }
 
     private void openMany(Player player, Crate crate, int amount) {
@@ -248,8 +272,7 @@ public class CrateOpener {
 
         Rarity rarity = reward.getRarity();
         if (roll.pity) Text.send(player, "&d&lPITY! &eYour guaranteed reward has arrived!");
-        player.sendTitle(rarity.getDisplayName(), reward.getDisplayName(), 5, 40, 15);
-        playRevealSound(player, rarity);
+        revealEffects(player, rarity, reward);
 
         String message = plugin.getConfig().getString("messages.win", "&aYou won {reward}&a!");
         Text.send(player, fill(message, player, crate, reward));
@@ -313,12 +336,49 @@ public class CrateOpener {
                 .replace("{crate}", crate.getDisplayName());
     }
 
-    private void playRevealSound(Player player, Rarity rarity) {
+    /** 0 = worst rarity ... size-1 = best. */
+    private int rankOf(Rarity rarity) {
         List<Rarity> all = plugin.getRarityManager().getRarities();
         int rank = 0;
         for (int i = 0; i < all.size(); i++) {
             if (all.get(i).getOrder() <= rarity.getOrder()) rank = i;
         }
+        return rank;
+    }
+
+    /**
+     * Gacha-style reveal. The best rarity gets a gold "jackpot" title, a totem animation and a sound
+     * fanfare; the second best gets a flashy title; everything else a normal title.
+     */
+    private void revealEffects(Player player, Rarity rarity, Reward reward) {
+        int top = plugin.getRarityManager().getRarities().size() - 1;
+        int rank = rankOf(rarity);
+        boolean best = top > 0 && rank == top;
+        boolean great = top > 1 && rank == top - 1;
+
+        if (best) {
+            String loud = rarity.getColor().toString() + ChatColor.BOLD + Text.strip(rarity.getDisplayName()).toUpperCase(Locale.ROOT);
+            player.sendTitle(Text.color("&6&l✦ ") + loud + Text.color(" &6&l✦"),
+                    reward.getDisplayName(), 5, 60, 20);
+            if (plugin.getConfig().getBoolean("effects.totem-on-best-rarity", true)) {
+                player.playEffect(EntityEffect.TOTEM_RESURRECT);
+            }
+            player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 0.6f);
+            Particle sparkle = Compat.particle("TOTEM_OF_UNDYING");
+            if (sparkle != null) player.getWorld().spawnParticle(sparkle, player.getLocation().add(0, 1, 0), 80, 0.5, 1, 0.5, 0.4);
+        } else if (great) {
+            player.sendTitle(Text.color("&e&l★ ") + rarity.getDisplayName() + Text.color(" &e&l★"), reward.getDisplayName(), 5, 50, 15);
+            playRevealSound(player, rank);
+            Particle sparkle = Compat.particle("ENCHANT");
+            if (sparkle != null) player.getWorld().spawnParticle(sparkle, player.getLocation().add(0, 1.5, 0), 60, 0.5, 0.5, 0.5, 1);
+        } else {
+            player.sendTitle(rarity.getDisplayName(), reward.getDisplayName(), 5, 40, 15);
+            playRevealSound(player, rank);
+        }
+    }
+
+    private void playRevealSound(Player player, int rank) {
         switch (Math.min(rank, 4)) {
             case 0:
                 player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
@@ -353,7 +413,8 @@ public class CrateOpener {
         }, 2L);
     }
 
-    private static Color colorOf(Rarity rarity) {
+    /** A firework/particle color that matches the rarity's chat color. */
+    public static Color colorOf(Rarity rarity) {
         switch (rarity.getColor()) {
             case AQUA: return Color.AQUA;
             case BLUE: case DARK_BLUE: return Color.BLUE;
@@ -387,13 +448,13 @@ public class CrateOpener {
 
     /** Ends a player's animation right away and gives the reward (on quit). */
     public void finishNow(Player player) {
-        CrateAnimationMenu menu = activeAnimations.get(player.getUniqueId());
-        if (menu != null) menu.finish();
+        OpeningSession session = activeAnimations.get(player.getUniqueId());
+        if (session != null) session.finish();
     }
 
     /** Ends every animation and gives the rewards (on shutdown / reload). */
     public void finishAll() {
-        for (CrateAnimationMenu menu : new ArrayList<>(activeAnimations.values())) menu.finish();
+        for (OpeningSession session : new ArrayList<>(activeAnimations.values())) session.finish();
         activeAnimations.clear();
     }
 }

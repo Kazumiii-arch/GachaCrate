@@ -9,6 +9,8 @@ import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Small helpers for colors and messages.
@@ -20,9 +22,26 @@ public final class Text {
     private Text() {
     }
 
-    /** Translates '&' color codes. Null becomes an empty string. */
+    private static final Pattern HEX = Pattern.compile("&#([0-9a-fA-F]{6})");
+
+    /**
+     * Translates '&' color codes and hex colors written as &amp;#RRGGBB (e.g. "&#ff8800Orange").
+     * Null becomes an empty string.
+     */
     public static String color(String text) {
-        return text == null ? "" : ChatColor.translateAlternateColorCodes('&', text);
+        if (text == null) return "";
+        if (text.contains("&#")) {
+            Matcher matcher = HEX.matcher(text);
+            StringBuffer out = new StringBuffer();
+            while (matcher.find()) {
+                StringBuilder hex = new StringBuilder("§x");
+                for (char c : matcher.group(1).toCharArray()) hex.append('§').append(c);
+                matcher.appendReplacement(out, Matcher.quoteReplacement(hex.toString()));
+            }
+            matcher.appendTail(out);
+            text = out.toString();
+        }
+        return ChatColor.translateAlternateColorCodes('&', text);
     }
 
     public static List<String> color(List<String> lines) {

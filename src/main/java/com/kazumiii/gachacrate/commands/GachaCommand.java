@@ -6,6 +6,7 @@ import com.kazumiii.gachacrate.crates.CrateManager;
 import com.kazumiii.gachacrate.crates.OpeningMode;
 import com.kazumiii.gachacrate.crates.Rarity;
 import com.kazumiii.gachacrate.crates.Reward;
+import com.kazumiii.gachacrate.crates.StarterCrates;
 import com.kazumiii.gachacrate.guis.CratePreviewMenu;
 import com.kazumiii.gachacrate.guis.CrateSettingsMenu;
 import com.kazumiii.gachacrate.guis.HistoryMenu;
@@ -86,6 +87,7 @@ public class GachaCommand implements TabExecutor {
             case "setblock": setBlock(sender, args); break;
             case "removeblock": removeBlock(sender); break;
             case "reload": reload(sender); break;
+            case "setup": setup(sender); break;
             default:
                 Text.send(sender, "&cUnknown subcommand. Use &f/" + label + " help&c.");
                 break;
@@ -113,6 +115,7 @@ public class GachaCommand implements TabExecutor {
         help(sender, "gacha.admin.edit", c + " edit <crate>", "Edit a crate in the menu");
         help(sender, "gacha.admin.edit", c + " list", "List all crates");
         help(sender, "gacha.admin.create", c + " create <name>", "Create a crate");
+        help(sender, "gacha.admin.create", c + " setup", "Create 4 ready-made example crates");
         help(sender, "gacha.admin.delete", c + " delete <name>", "Delete a crate");
         help(sender, "gacha.admin.additem", c + " additem <crate> <rarity> <weight>", "Add the item in your hand");
         help(sender, "gacha.admin.addcmd", c + " addcmd <crate> <rarity> <weight> <command>", "Add a command reward");
@@ -579,6 +582,17 @@ public class GachaCommand implements TabExecutor {
         Text.send(sender, "&aThat block is no longer a crate.");
     }
 
+    private void setup(CommandSender sender) {
+        if (!check(sender, "gacha.admin.create")) return;
+        List<String> created = new StarterCrates(plugin).create();
+        if (created.isEmpty()) {
+            Text.send(sender, "&eThe starter crates (vote, rare, legendary, event) already exist.");
+            return;
+        }
+        Text.send(sender, "&aCreated starter crates: &e" + String.join(", ", created));
+        Text.send(sender, "&7Place them with &f/gacha setblock <crate>&7, and edit them with &f/gacha edit <crate>&7.");
+    }
+
     private void reload(CommandSender sender) {
         if (!check(sender, "gacha.admin.reload")) return;
         long start = System.currentTimeMillis();
@@ -603,7 +617,7 @@ public class GachaCommand implements TabExecutor {
             addIf(sender, subs, "gacha.user.stats.self", "stats");
             subs.add("help");
             addIf(sender, subs, "gacha.admin.edit", "edit", "list");
-            addIf(sender, subs, "gacha.admin.create", "create");
+            addIf(sender, subs, "gacha.admin.create", "create", "setup");
             addIf(sender, subs, "gacha.admin.delete", "delete");
             addIf(sender, subs, "gacha.admin.additem", "additem");
             addIf(sender, subs, "gacha.admin.addcmd", "addcmd");

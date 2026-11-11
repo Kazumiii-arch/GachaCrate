@@ -59,6 +59,12 @@ public final class Compat {
         return particle;
     }
 
+    /** The colored dust particle ("DUST", called "REDSTONE" before 1.20.5). Needs Particle.DustOptions. */
+    public static Particle dust() {
+        Particle particle = particleExact("DUST");
+        return particle != null ? particle : particleExact("REDSTONE");
+    }
+
     private static Particle particleExact(String name) {
         try {
             return Particle.valueOf(name);

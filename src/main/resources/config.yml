@@ -4,7 +4,7 @@
 # Crates themselves are created and edited in-game with /gacha (saved in crates.yml).
 # Use /gacha reload after changing this file.
 
-# Shown in front of plugin messages. Use '&' for color codes.
+# Shown in front of plugin messages. Use '&' for color codes and '&#RRGGBB' for hex colors.
 prefix: "&6&lGacha &8» &r"
 
 # --- KEY APPEARANCE ---
@@ -24,6 +24,11 @@ opening:
   close-delay-ticks: 40
   # Players can close the animation early. The reward is given instantly.
   allow-skip: true
+
+# --- REVEAL EFFECTS ---
+effects:
+  # Play the totem-of-undying screen animation when someone wins the best rarity.
+  totem-on-best-rarity: true
 
 # --- ANNOUNCEMENTS ---
 # The minimum rarity (from the list below) that is announced to the whole server.
@@ -51,6 +56,14 @@ history:
   server-wide: 30
   # Only wins of this rarity or better go into the server-wide feed.
   server-wide-minimum-rarity: "EPIC"
+
+# --- UPDATES ---
+update-checker:
+  # Check GitHub for new GachaCrate versions and tell the console.
+  enabled: true
+  # Also tell admins (permission gacha.admin.update) when they join.
+  notify-admins: true
+  github-repository: "Kazumiii-arch/GachaCrate"
 
 # --- DATA ---
 # How often player data (pity, stats) is saved, in minutes. 0 = only on quit/shutdown.

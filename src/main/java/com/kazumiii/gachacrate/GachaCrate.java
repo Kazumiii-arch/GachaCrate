@@ -17,6 +17,7 @@ import com.kazumiii.gachacrate.listeners.CrateListener;
 import com.kazumiii.gachacrate.listeners.PlayerJoinListener;
 import com.kazumiii.gachacrate.listeners.ProtectionListener;
 import com.kazumiii.gachacrate.player.PlayerManager;
+import com.kazumiii.gachacrate.util.UpdateChecker;
 import com.kazumiii.gachacrate.shop.ShopManager;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
@@ -70,6 +71,10 @@ public final class GachaCrate extends JavaPlugin {
         getServer().getPluginManager().registerEvents(crateListener, this);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(this, crateListener), this);
         getServer().getPluginManager().registerEvents(new ProtectionListener(this), this);
+
+        UpdateChecker updateChecker = new UpdateChecker(this);
+        getServer().getPluginManager().registerEvents(updateChecker, this);
+        updateChecker.start();
 
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
             try {

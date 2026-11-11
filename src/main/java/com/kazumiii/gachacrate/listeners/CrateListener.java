@@ -64,7 +64,7 @@ public class CrateListener implements Listener {
             String keyCrate = plugin.getKeyManager().getCrateFromKey(player.getInventory().getItemInMainHand());
             boolean holdingThisKey = keyCrate != null && keyCrate.equalsIgnoreCase(crate.getId());
             if (holdingThisKey) {
-                plugin.getCrateOpener().openWithKey(player, crate, player.isSneaking());
+                plugin.getCrateOpener().openWithKey(player, crate, player.isSneaking(), block.getLocation());
             } else if (keyCrate != null) {
                 Text.send(player, "&cThat key is for a different crate. You need a " + crate.getDisplayName() + " &ckey.");
             } else if (crate.getOpeningMode() == OpeningMode.PHYSICAL_BLOCKS) {

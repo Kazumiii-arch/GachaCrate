@@ -2,6 +2,7 @@ package com.kazumiii.gachacrate.guis;
 
 import com.kazumiii.gachacrate.crates.Crate;
 import com.kazumiii.gachacrate.crates.CrateOpener;
+import com.kazumiii.gachacrate.crates.OpeningSession;
 import com.kazumiii.gachacrate.crates.Rarity;
 import com.kazumiii.gachacrate.crates.Reward;
 import com.kazumiii.gachacrate.util.Items;
@@ -21,7 +22,7 @@ import java.util.List;
  * <p>
  * Closing the menu skips to the end (if allowed in config). Logging out also gives the reward.
  */
-public class CrateAnimationMenu extends Menu {
+public class CrateAnimationMenu extends Menu implements OpeningSession {
 
     private static final int[] ROULETTE_PATH = {0, 1, 2, 3, 4, 5, 6, 7, 8, 17, 26, 35, 44, 43, 42, 41, 40, 39, 38, 37, 36, 27, 18, 9};
     private static final Material[] LIGHTS = {
@@ -67,6 +68,11 @@ public class CrateAnimationMenu extends Menu {
     }
 
     @Override
+    public void start() {
+        open();
+    }
+
+    @Override
     public void open() {
         super.open();
         switch (crate.getAnimationType()) {
@@ -78,6 +84,14 @@ public class CrateAnimationMenu extends Menu {
                 startReel();
                 break;
         }
+    }
+
+    private Reward bestReward() {
+        Reward best = null;
+        for (Reward r : pool) {
+            if (best == null || r.getRarity().getOrder() > best.getRarity().getOrder()) best = r;
+        }
+        return best;
     }
 
     /** A random reward icon, weighted by chance (so common items show up more often). */
@@ -98,6 +112,11 @@ public class CrateAnimationMenu extends Menu {
         final List<ItemStack> reel = new ArrayList<>();
         for (int i = 0; i < steps + 8; i++) reel.add(randomIcon());
         reel.set(steps - 1 + 4, roll.reward.getDisplayItem()); // Lands in the middle slot (13) on the last step.
+        // Near miss: often put the best reward right next to the winner, so it "almost" stopped there.
+        Reward best = bestReward();
+        if (best != null && best != roll.reward && Math.random() < 0.5) {
+            reel.set(steps - 1 + 5, best.getDisplayItem());
+        }
 
         task = new BukkitRunnable() {
             int step = 0;
@@ -186,6 +205,7 @@ public class CrateAnimationMenu extends Menu {
     }
 
     /** Ends the animation and hands out the reward. Safe to call more than once. */
+    @Override
     public void finish() {
         if (finished) return;
         finished = true;
