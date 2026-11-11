@@ -1,29 +1,23 @@
-// ========================================================================
-// File: RewardEditorMenu.java
-// Location: /src/main/java/com/kazumiii/gachacrate/guis/RewardEditorMenu.java
-// ========================================================================
 package com.kazumiii.gachacrate.guis;
 
-import com.kazumiii.gachacrate.GachaCrate;
-import com.kazumiii.gachacrate.conversation.ChancePrompt;
-import com.kazumiii.gachacrate.conversation.RarityPrompt;
+import com.kazumiii.gachacrate.conversation.ChatPrompt;
 import com.kazumiii.gachacrate.crates.Crate;
 import com.kazumiii.gachacrate.crates.Reward;
 import com.kazumiii.gachacrate.crates.RewardType;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import com.kazumiii.gachacrate.util.Compat;
+import com.kazumiii.gachacrate.util.Items;
+import com.kazumiii.gachacrate.util.Text;
 import org.bukkit.Material;
-import org.bukkit.conversations.Conversation;
-import org.bukkit.conversations.ConversationFactory;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 
+/**
+ * Edit one reward: rarity, weight, item/icon, lore, glow and commands.
+ */
 public class RewardEditorMenu extends Menu {
 
     private final Crate crate;
@@ -36,133 +30,113 @@ public class RewardEditorMenu extends Menu {
     }
 
     @Override
-    public void open() {
-        inventory = Bukkit.createInventory(this, 45, "Editing Reward");
-        updateItems();
-        player.openInventory(inventory);
-    }
-
-    /**
-     * Refreshes the GUI to show the most current reward settings.
-     */
-    private void updateItems() {
-        inventory.clear();
-        
-        // Display the item being edited
-        ItemStack displayItem;
-        if (reward.getType() == RewardType.ITEM) {
-            displayItem = reward.getItem().clone();
-        } else {
-            displayItem = (reward.getPreviewItem() != null) ? reward.getPreviewItem().clone() : new ItemStack(Material.COMMAND_BLOCK);
-        }
-        inventory.setItem(4, displayItem);
-
-        // --- Control Buttons ---
-        ItemStack rarityButton = new ItemStack(Material.NAME_TAG);
-        ItemMeta rarityMeta = rarityButton.getItemMeta();
-        rarityMeta.setDisplayName(ChatColor.AQUA + "Change Rarity");
-        rarityMeta.setLore(Arrays.asList("§7Current: " + reward.getRarity().getDisplayName(), "§e► Click to change."));
-        rarityButton.setItemMeta(rarityMeta);
-
-        ItemStack chanceButton = new ItemStack(Material.EXPERIENCE_BOTTLE);
-        ItemMeta chanceMeta = chanceButton.getItemMeta();
-        chanceMeta.setDisplayName(ChatColor.GREEN + "Change Chance");
-        chanceMeta.setLore(Arrays.asList("§7Current: " + reward.getChance() + "%", "§e► Click to change."));
-        chanceButton.setItemMeta(chanceMeta);
-
-        ItemStack backButton = new ItemStack(Material.ARROW);
-        ItemMeta backMeta = backButton.getItemMeta();
-        backMeta.setDisplayName(ChatColor.RED + "« Back to Reward List");
-        backButton.setItemMeta(backMeta);
-
-        inventory.setItem(20, rarityButton);
-        inventory.setItem(24, chanceButton);
-        inventory.setItem(36, backButton);
-
-        // Add buttons specific to the reward type
-        if (reward.getType() == RewardType.ITEM) {
-            ItemStack setItemButton = new ItemStack(Material.ANVIL);
-            ItemMeta setItemMeta = setItemButton.getItemMeta();
-            setItemMeta.setDisplayName(ChatColor.YELLOW + "Set Reward Item");
-            setItemMeta.setLore(Arrays.asList("§7Replaces this reward's item", "§7with one you place in a new menu."));
-            setItemButton.setItemMeta(setItemMeta);
-
-            boolean isGlowing = reward.getItem().getItemMeta().hasItemFlag(ItemFlag.HIDE_ENCHANTS);
-            ItemStack glowButton = new ItemStack(isGlowing ? Material.LIME_DYE : Material.GRAY_DYE);
-            ItemMeta glowMeta = glowButton.getItemMeta();
-            glowMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "Toggle Glow Effect");
-            glowMeta.setLore(Arrays.asList("§7Status: " + (isGlowing ? "§aEnabled" : "§cDisabled")));
-            glowButton.setItemMeta(glowMeta);
-            
-            ItemStack loreButton = new ItemStack(Material.WRITABLE_BOOK);
-            ItemMeta loreMeta = loreButton.getItemMeta();
-            loreMeta.setDisplayName(ChatColor.DARK_AQUA + "Edit Lore");
-            loreMeta.setLore(Arrays.asList("§7Add, remove, or clear", "§7the lore of this item."));
-            loreButton.setItemMeta(loreMeta);
-
-            inventory.setItem(29, setItemButton);
-            inventory.setItem(31, loreButton);
-            inventory.setItem(33, glowButton);
-        } else { // Command Reward
-            ItemStack setPreviewButton = new ItemStack(Material.ITEM_FRAME);
-            ItemMeta setPreviewMeta = setPreviewButton.getItemMeta();
-            setPreviewMeta.setDisplayName(ChatColor.YELLOW + "Set Preview Item");
-            setPreviewMeta.setLore(Arrays.asList("§7Replaces this command's icon", "§7with an item you place in a new menu."));
-            setPreviewButton.setItemMeta(setPreviewMeta);
-            inventory.setItem(29, setPreviewButton);
-        }
+    protected String getTitle() {
+        return "§8Editing Reward";
     }
 
     @Override
-    public void handleMenu(InventoryClickEvent event) {
-        event.setCancelled(true);
-        ItemStack clicked = event.getCurrentItem();
-        if (clicked == null || clicked.getType() == Material.AIR) return;
-
-        ConversationFactory cf = new ConversationFactory(GachaCrate.getInstance());
-
-        switch (clicked.getType()) {
-            case NAME_TAG:
-                player.closeInventory();
-                cf.withFirstPrompt(new RarityPrompt(crate, reward, this)).buildConversation(player).begin();
-                break;
-            case EXPERIENCE_BOTTLE:
-                player.closeInventory();
-                cf.withFirstPrompt(new ChancePrompt(crate, reward, this)).buildConversation(player).begin();
-                break;
-            case ANVIL: // Set Item for Item Reward
-            case ITEM_FRAME: // Set Preview Item for Command Reward
-                new SetRewardItemMenu(player, crate, reward).open();
-                break;
-            case WRITABLE_BOOK:
-                new LoreEditorMenu(player, crate, reward).open();
-                break;
-            case LIME_DYE:
-            case GRAY_DYE:
-                toggleGlow();
-                break;
-            case ARROW:
-                new CrateEditorMenu(player, crate).open();
-                break;
-        }
+    protected int getSize() {
+        return 45;
     }
 
-    private void toggleGlow() {
-        if (reward.getType() != RewardType.ITEM) return;
-        
-        ItemStack item = reward.getItem();
-        ItemMeta meta = item.getItemMeta();
-        if (meta.hasItemFlag(ItemFlag.HIDE_ENCHANTS)) {
-            meta.removeEnchant(Enchantment.LUCK);
-            meta.removeItemFlags(ItemFlag.HIDE_ENCHANTS);
-            player.sendMessage(ChatColor.RED + "Glow effect disabled.");
+    @Override
+    protected void draw() {
+        fill(Material.GRAY_STAINED_GLASS_PANE);
+
+        item(4, Items.copy(reward.getDisplayItem()).addLore(List.of(
+                "", "&eRarity: " + reward.getRarity().getDisplayName(),
+                "&eWeight: &f" + Text.number(reward.getChance()) + " &7(" + Text.number(crate.getPercent(reward)) + "%)"
+        )).build());
+
+        button(20, Items.of(Material.NAME_TAG).name("&bRarity: " + reward.getRarity().getDisplayName())
+                .lore("&7Left-click: next rarity", "&7Right-click: previous rarity").build(), e -> {
+            reward.setRarity(plugin().getRarityManager().next(reward.getRarity(), !e.isRightClick()));
+            save();
+            refresh();
+        });
+
+        button(22, Items.of(Material.EXPERIENCE_BOTTLE).name("&aWeight: &f" + Text.number(reward.getChance()))
+                .lore("&7Real chance: &f" + Text.number(crate.getPercent(reward)) + "%", "",
+                        "&e► Click to type a new weight", "&7(decimals allowed, e.g. 0.5)").build(),
+                e -> ChatPrompt.ask(player, "&eType the new weight (e.g. &f25 &eor &f0.5&e)", input -> {
+                    double value;
+                    try {
+                        value = Double.parseDouble(input.replace(",", "."));
+                    } catch (NumberFormatException ex) {
+                        return "That's not a number.";
+                    }
+                    if (value <= 0 || Double.isNaN(value) || Double.isInfinite(value)) return "The weight must be more than 0.";
+                    reward.setChance(value);
+                    save();
+                    Text.send(player, "&aWeight updated.");
+                    return null;
+                }, this::open));
+
+        if (reward.getType() == RewardType.ITEM) {
+            button(24, Items.of(Material.ANVIL).name("&eReplace Item")
+                    .lore("&7Swap this reward's item", "&7for another one.").build(),
+                    e -> new SetRewardItemMenu(player, crate, reward).open());
+
+            boolean glowing = Compat.hasGlow(reward.getItem().getItemMeta());
+            button(30, Items.of(glowing ? Material.LIME_DYE : Material.GRAY_DYE)
+                    .name("&dGlow Effect: " + (glowing ? "&aON" : "&cOFF")).lore("&e► Click to toggle").build(), e -> {
+                ItemStack item = reward.getItem();
+                ItemMeta meta = item.getItemMeta();
+                Compat.setGlow(meta, !glowing);
+                item.setItemMeta(meta);
+                save();
+                refresh();
+            });
+
+            button(32, Items.of(Material.WRITABLE_BOOK).name("&3Edit Lore")
+                    .lore("&7Add, remove or clear", "&7the item's description.").build(),
+                    e -> new LoreEditorMenu(player, crate, reward).open());
         } else {
-            meta.addEnchant(Enchantment.LUCK, 1, false);
-            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-            player.sendMessage(ChatColor.GREEN + "Glow effect enabled.");
-        }
-        item.setItemMeta(meta);
-        GachaCrate.getInstance().getCrateManager().saveCrates();
-        updateItems(); // Refresh the menu to show the change
-    }
+            button(24, Items.of(Material.ITEM_FRAME).name("&eSet Icon")
+                    .lore("&7The item shown in menus", "&7and animations for this reward.").build(),
+                    e -> new SetRewardItemMenu(player, crate, reward).open());
+
+            List<String> lore = new ArrayList<>();
+            lore.add("&7Current:");
+            lore.addAll(reward.describeCommands());
+            lore.add("");
+            lore.add("&e► Left-click to add a command");
+            lore.add("&c► Right-click to remove the last one");
+            button(31, Items.of(Material.COMMAND_BLOCK).name("&dCommands").lore(lore).build(), e -> {
+                if (e.isRightClick()) {
+                    if (reward.getCommands().size() <= 1) {
+                        Text.send(player, "&cA command reward needs at least one command.");
+                        return;
+                    }
+                    reward.getCommands().remove(reward.getCommands().size() - 1);
+                    save();
+                    refresh();
+                    return;
                 }
+                ChatPrompt.ask(player, "&eType the command to add &7(without '/', {player} = winner)", input -> {
+                    List<String> commands = RewardTypeSelectionMenu.splitCommands(input);
+                    if (commands.isEmpty()) return "Please type a command.";
+                    reward.getCommands().addAll(commands);
+                    save();
+                    Text.send(player, "&aCommand added.");
+                    return null;
+                }, this::open);
+            });
+        }
+
+        button(36, Items.of(Material.ARROW).name("&e« Back to Rewards").build(),
+                e -> new CrateEditorMenu(player, crate).open());
+
+        button(44, Items.of(Material.LAVA_BUCKET).name("&cRemove Reward").build(),
+                e -> new ConfirmMenu(player, "Remove this reward?", () -> {
+                    crate.removeReward(reward);
+                    plugin().getCrateManager().saveCrates();
+                    Text.send(player, "&aReward removed.");
+                    new CrateEditorMenu(player, crate).open();
+                }, this::open).open());
+    }
+
+    private void save() {
+        plugin().getCrateManager().saveCrates();
+    }
+}

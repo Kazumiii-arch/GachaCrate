@@ -1,33 +1,53 @@
 package com.kazumiii.gachacrate.animations;
 
-import com.kazumiii.gachacrate.GachaCrate;
 import com.kazumiii.gachacrate.crates.Crate;
 import com.kazumiii.gachacrate.guis.CrateSettingsMenu;
 import com.kazumiii.gachacrate.guis.Menu;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import com.kazumiii.gachacrate.util.Compat;
+import com.kazumiii.gachacrate.util.Items;
+import com.kazumiii.gachacrate.util.Text;
 import org.bukkit.Material;
 import org.bukkit.Particle;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.ItemFlag;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
+/**
+ * Pick the particle effect that swirls around this crate's blocks.
+ * Only particles that exist on the running server version are shown.
+ */
 public class IdleParticleMenu extends Menu {
 
+    /** Particle name (old or new spelling) -> icon. */
+    private static final Map<String, Material> CHOICES = new LinkedHashMap<>();
+
+    static {
+        CHOICES.put("ENCHANT", Material.ENCHANTING_TABLE);
+        CHOICES.put("TOTEM_OF_UNDYING", Material.TOTEM_OF_UNDYING);
+        CHOICES.put("HAPPY_VILLAGER", Material.EMERALD);
+        CHOICES.put("PORTAL", Material.OBSIDIAN);
+        CHOICES.put("FLAME", Material.BLAZE_POWDER);
+        CHOICES.put("SOUL_FIRE_FLAME", Material.SOUL_TORCH);
+        CHOICES.put("DRAGON_BREATH", Material.DRAGON_BREATH);
+        CHOICES.put("HEART", Material.RED_DYE);
+        CHOICES.put("NOTE", Material.NOTE_BLOCK);
+        CHOICES.put("SOUL", Material.SOUL_SAND);
+        CHOICES.put("END_ROD", Material.END_ROD);
+        CHOICES.put("WITCH", Material.CAULDRON);
+        CHOICES.put("GLOW", Material.GLOW_INK_SAC);
+        CHOICES.put("ELECTRIC_SPARK", Material.LIGHTNING_ROD);
+        CHOICES.put("WAX_ON", Material.HONEYCOMB);
+        CHOICES.put("SPORE_BLOSSOM_AIR", Material.SPORE_BLOSSOM);
+        CHOICES.put("CHERRY_LEAVES", Material.CHERRY_LEAVES);
+        CHOICES.put("CRIT", Material.IRON_SWORD);
+        CHOICES.put("FIREWORK", Material.FIREWORK_ROCKET);
+        CHOICES.put("SNOWFLAKE", Material.SNOWBALL);
+    }
+
     private final Crate crate;
-    // An expanded list of attractive particles for more customization
-    private final List<Particle> availableParticles = Arrays.asList(
-            Particle.ENCHANTMENT_TABLE, Particle.TOTEM, Particle.VILLAGER_HAPPY,
-            Particle.PORTAL, Particle.FLAME, Particle.SOUL_FIRE_FLAME,
-            Particle.DRAGON_BREATH, Particle.HEART, Particle.NOTE, Particle.SOUL,
-            Particle.SPORE_BLOSSOM_AIR, Particle.CHERRY_LEAVES
-    );
 
     public IdleParticleMenu(Player player, Crate crate) {
         super(player);
@@ -35,76 +55,62 @@ public class IdleParticleMenu extends Menu {
     }
 
     @Override
-    public void open() {
-        // Increased size to 36 to hold more options
-        inventory = Bukkit.createInventory(this, 36, "§8Idle Particle Effect");
-
-        // --- Particle Selection ---
-        for (int i = 0; i < availableParticles.size(); i++) {
-            if (i >= 27) break; // Prevent overflow, fits 3 rows of particles
-            
-            Particle particle = availableParticles.get(i);
-            ItemStack item = new ItemStack(Material.PAPER);
-            ItemMeta meta = item.getItemMeta();
-            meta.setDisplayName(ChatColor.AQUA + particle.name());
-
-            if (crate.getIdleParticle() == particle) {
-                meta.addEnchant(Enchantment.LUCK, 1, false);
-                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-                meta.setLore(Arrays.asList(ChatColor.GREEN + "Currently Selected"));
-            } else {
-                meta.setLore(Arrays.asList(ChatColor.YELLOW + "► Click to select"));
-            }
-            item.setItemMeta(meta);
-            inventory.setItem(i, item);
-        }
-
-        // --- Control Buttons ---
-        ItemStack disableButton = new ItemStack(Material.BARRIER);
-        ItemMeta disableMeta = disableButton.getItemMeta();
-        disableMeta.setDisplayName(ChatColor.RED + "Disable Effect");
-        disableButton.setItemMeta(disableMeta);
-
-        ItemStack backButton = new ItemStack(Material.ARROW);
-        ItemMeta backMeta = backButton.getItemMeta();
-        backMeta.setDisplayName(ChatColor.YELLOW + "« Back to Settings");
-        backButton.setItemMeta(backMeta);
-
-        inventory.setItem(27, backButton);
-        inventory.setItem(35, disableButton);
-
-        player.openInventory(inventory);
+    protected String getTitle() {
+        return "§8Idle Particles: " + crate.getName();
     }
 
     @Override
-    public void handleMenu(InventoryClickEvent event) {
-        event.setCancelled(true);
-        if (event.getCurrentItem() == null || event.getCurrentItem().getType() == Material.AIR) return;
+    protected int getSize() {
+        return 36;
+    }
 
-        Material clickedType = event.getCurrentItem().getType();
-        if (clickedType == Material.ARROW) {
-            new CrateSettingsMenu(player, crate).open();
-            return;
+    @Override
+    protected void draw() {
+        fillRow(3, Material.BLACK_STAINED_GLASS_PANE);
+        // Particles go in the top 3 rows; the shape button sits in the bottom row.
+
+        int slot = 0;
+        for (Map.Entry<String, Material> choice : CHOICES.entrySet()) {
+            Particle particle = Compat.particle(choice.getKey());
+            if (particle == null || slot >= 27) continue;
+            boolean selected = crate.getIdleParticle() == particle;
+            List<String> lore = new ArrayList<>();
+            lore.add(selected ? "&a✔ Selected" : "&e► Click to select");
+            button(slot++, Items.of(choice.getValue()).name((selected ? "&a" : "&b") + pretty(particle.name()))
+                    .lore(lore).glow(selected).build(), e -> {
+                crate.setIdleParticle(particle);
+                plugin().getCrateManager().saveCrates();
+                Text.send(player, "&aIdle particle set to " + pretty(particle.name()) + ".");
+                refresh();
+            });
         }
-        if (clickedType == Material.BARRIER) {
+
+        ParticleStyle style = crate.getParticleStyle();
+        List<String> styleLore = new ArrayList<>();
+        for (ParticleStyle s : ParticleStyle.values()) {
+            styleLore.add((s == style ? "&a► " : "&7") + s.getDisplayName() + (s == style ? " &8- &7" + s.getDescription() : ""));
+        }
+        styleLore.add("");
+        styleLore.add("&e► Click to change the shape");
+        button(31, Items.of(style.getIcon()).name("&bShape: &f" + style.getDisplayName()).lore(styleLore).build(), e -> {
+            crate.setParticleStyle(crate.getParticleStyle().next());
+            plugin().getCrateManager().saveCrates();
+            refresh();
+        });
+
+        button(27, Items.of(Material.ARROW).name("&e« Back to Settings").build(),
+                e -> new CrateSettingsMenu(player, crate).open());
+        button(35, Items.of(Material.BARRIER).name("&cNo Particles")
+                .lore(crate.getIdleParticle() == null ? "&a✔ Selected" : "&e► Click to turn off").build(), e -> {
             crate.setIdleParticle(null);
-            GachaCrate.getInstance().getCrateManager().saveCrates();
-            player.sendMessage(ChatColor.GREEN + "Idle particle effect disabled for this crate.");
-            open();
-            return;
-        }
-        
-        if (clickedType == Material.PAPER) {
-            try {
-                String particleName = ChatColor.stripColor(event.getCurrentItem().getItemMeta().getDisplayName());
-                Particle selectedParticle = Particle.valueOf(particleName);
-                crate.setIdleParticle(selectedParticle);
-                GachaCrate.getInstance().getCrateManager().saveCrates();
-                player.sendMessage(ChatColor.GREEN + "Idle particle set to " + particleName + "!");
-                open(); // Refresh the menu to show the selection
-            } catch (Exception e) {
-                // Clicked on something else, do nothing
-            }
-        }
+            plugin().getCrateManager().saveCrates();
+            Text.send(player, "&aIdle particles turned off.");
+            refresh();
+        });
     }
+
+    private static String pretty(String name) {
+        String lower = name.toLowerCase().replace('_', ' ');
+        return Character.toUpperCase(lower.charAt(0)) + lower.substring(1);
     }
+}

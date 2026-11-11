@@ -1,27 +1,21 @@
-// ========================================================================
-// File: LoreEditorMenu.java
-// Location: /src/main/java/com/kazumiii/gachacrate/guis/LoreEditorMenu.java
-// ========================================================================
 package com.kazumiii.gachacrate.guis;
 
-import com.kazumiii.gachacrate.GachaCrate;
-import com.kazumiii.gachacrate.conversation.LoreEditPrompt;
+import com.kazumiii.gachacrate.conversation.ChatPrompt;
 import com.kazumiii.gachacrate.crates.Crate;
 import com.kazumiii.gachacrate.crates.Reward;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import com.kazumiii.gachacrate.util.Items;
+import com.kazumiii.gachacrate.util.Text;
 import org.bukkit.Material;
-import org.bukkit.conversations.Conversation;
-import org.bukkit.conversations.ConversationFactory;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Edit the lore (description) and name of an item reward.
+ */
 public class LoreEditorMenu extends Menu {
 
     private final Crate crate;
@@ -34,97 +28,86 @@ public class LoreEditorMenu extends Menu {
     }
 
     @Override
-    public void open() {
-        inventory = Bukkit.createInventory(this, 27, "Edit Item Lore");
-        updateItems();
-        player.openInventory(inventory);
-    }
-
-    /**
-     * Refreshes the items in the GUI, especially the item being edited.
-     */
-    private void updateItems() {
-        inventory.clear(); // Clear the menu before redrawing to reflect changes
-
-        // Display the item being edited in the center
-        ItemStack displayItem = reward.getItem().clone();
-        inventory.setItem(4, displayItem);
-
-        // --- Control Buttons ---
-        ItemStack addLineButton = new ItemStack(Material.WRITABLE_BOOK);
-        ItemMeta addMeta = addLineButton.getItemMeta();
-        addMeta.setDisplayName(ChatColor.GREEN + "Add Lore Line");
-        addMeta.setLore(Arrays.asList(ChatColor.GRAY + "Adds a new line to the", ChatColor.GRAY + "bottom of the item's lore."));
-        addLineButton.setItemMeta(addMeta);
-
-        ItemStack removeLineButton = new ItemStack(Material.TNT);
-        ItemMeta removeMeta = removeLineButton.getItemMeta();
-        removeMeta.setDisplayName(ChatColor.YELLOW + "Remove Last Line");
-        removeMeta.setLore(Arrays.asList(ChatColor.GRAY + "Removes the last line", ChatColor.GRAY + "from the item's lore."));
-        removeLineButton.setItemMeta(removeMeta);
-
-        ItemStack clearLoreButton = new ItemStack(Material.LAVA_BUCKET);
-        ItemMeta clearMeta = clearLoreButton.getItemMeta();
-        clearMeta.setDisplayName(ChatColor.RED + "Clear All Lore");
-        clearMeta.setLore(Arrays.asList(ChatColor.DARK_RED + "Warning: This removes all", ChatColor.DARK_RED + "lines of lore from the item."));
-        clearLoreButton.setItemMeta(clearMeta);
-
-        ItemStack backButton = new ItemStack(Material.ARROW);
-        ItemMeta backMeta = backButton.getItemMeta();
-        backMeta.setDisplayName(ChatColor.YELLOW + "« Back to Reward Editor");
-        backButton.setItemMeta(backMeta);
-
-        inventory.setItem(12, addLineButton);
-        inventory.setItem(13, removeLineButton);
-        inventory.setItem(14, clearLoreButton);
-        inventory.setItem(18, backButton);
+    protected String getTitle() {
+        return "§8Edit Item Lore";
     }
 
     @Override
-    public void handleMenu(InventoryClickEvent event) {
-        event.setCancelled(true);
-        ItemStack clicked = event.getCurrentItem();
-        if (clicked == null || clicked.getType() == Material.AIR) return;
+    protected int getSize() {
+        return 27;
+    }
 
-        ItemStack rewardItem = reward.getItem();
-        ItemMeta meta = rewardItem.getItemMeta();
-        List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+    private List<String> currentLore() {
+        ItemMeta meta = reward.getItem().getItemMeta();
+        return meta != null && meta.hasLore() && meta.getLore() != null ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+    }
 
-        switch (clicked.getType()) {
-            case WRITABLE_BOOK:
-                player.closeInventory();
-                ConversationFactory cf = new ConversationFactory(GachaCrate.getInstance());
-                Conversation convo = cf.withFirstPrompt(new LoreEditPrompt(crate, reward, this)).withLocalEcho(false).buildConversation(player);
-                convo.begin();
-                break;
-            case TNT:
-                if (!lore.isEmpty()) {
-                    lore.remove(lore.size() - 1);
-                    meta.setLore(lore);
-                    rewardItem.setItemMeta(meta);
-                    GachaCrate.getInstance().getCrateManager().saveCrates();
-                    player.sendMessage(ChatColor.GREEN + "Last line of lore removed.");
-                    updateItems(); // Refresh the GUI to show the change
-                } else {
-                    player.sendMessage(ChatColor.RED + "This item has no lore to remove.");
+    private void setLore(List<String> lore) {
+        ItemStack item = reward.getItem();
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+        meta.setLore(lore.isEmpty() ? null : lore);
+        item.setItemMeta(meta);
+        plugin().getCrateManager().saveCrates();
+    }
+
+    @Override
+    protected void draw() {
+        fill(Material.GRAY_STAINED_GLASS_PANE);
+        item(4, reward.getItem().clone());
+
+        button(10, Items.of(Material.NAME_TAG).name("&bRename Item")
+                .lore("&7Change the item's name.", "&7Supports & color codes.", "", "&c► Right-click to reset").build(), e -> {
+            if (e.isRightClick()) {
+                ItemStack item = reward.getItem();
+                ItemMeta meta = item.getItemMeta();
+                if (meta != null) {
+                    meta.setDisplayName(null);
+                    item.setItemMeta(meta);
+                    plugin().getCrateManager().saveCrates();
                 }
-                break;
-            case LAVA_BUCKET:
-                if (!lore.isEmpty()) {
-                    meta.setLore(new ArrayList<>());
-                    rewardItem.setItemMeta(meta);
-                    GachaCrate.getInstance().getCrateManager().saveCrates();
-                    player.sendMessage(ChatColor.GREEN + "All lore has been cleared from the item.");
-                    updateItems(); // Refresh the GUI
-                } else {
-                    player.sendMessage(ChatColor.RED + "This item has no lore to clear.");
-                }
-                break;
-            case ARROW:
-                new RewardEditorMenu(player, crate, reward).open();
-                break;
-            default:
-                break;
-        }
+                refresh();
+                return;
+            }
+            ChatPrompt.ask(player, "&eType the new item name", input -> {
+                ItemStack item = reward.getItem();
+                ItemMeta meta = item.getItemMeta();
+                if (meta == null) return "This item can't be renamed.";
+                meta.setDisplayName(Text.color(input));
+                item.setItemMeta(meta);
+                plugin().getCrateManager().saveCrates();
+                Text.send(player, "&aItem renamed.");
+                return null;
+            }, this::open);
+        });
+
+        button(12, Items.of(Material.WRITABLE_BOOK).name("&aAdd Lore Line")
+                .lore("&7Adds a line at the bottom.").build(),
+                e -> ChatPrompt.ask(player, "&eType the new lore line &7(& color codes work)", input -> {
+                    List<String> lore = currentLore();
+                    lore.add(Text.color(input));
+                    setLore(lore);
+                    Text.send(player, "&aLore line added.");
+                    return null;
+                }, this::open));
+
+        button(14, Items.of(Material.TNT).name("&eRemove Last Line").build(), e -> {
+            List<String> lore = currentLore();
+            if (lore.isEmpty()) {
+                Text.send(player, "&cThis item has no lore.");
+                return;
+            }
+            lore.remove(lore.size() - 1);
+            setLore(lore);
+            refresh();
+        });
+
+        button(16, Items.of(Material.LAVA_BUCKET).name("&cClear All Lore").build(), e -> {
+            setLore(new ArrayList<>());
+            refresh();
+        });
+
+        button(18, Items.of(Material.ARROW).name("&e« Back to Reward").build(),
+                e -> new RewardEditorMenu(player, crate, reward).open());
     }
 }

@@ -1,30 +1,29 @@
-// ========================================================================
-// File: build.gradle.kts
-// Location: /build.gradle.kts
-// ========================================================================
 plugins {
     java
-    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "com.kazumiii"
-version = "1.5.0" // Version bump for universal hologram support
+version = "2.4.0"
 
 repositories {
     mavenCentral()
-    maven { url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/") }
-    maven { url = uri("https://jitpack.io/") } // For FancyHolograms
-    maven { url = uri("https://repo.extendedclip.com/content/repositories/placeholderapi/") }
+    maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
+    maven("https://oss.sonatype.org/content/repositories/snapshots/")
+    maven("https://repo.extendedclip.com/releases/")
+    maven("https://repo.extendedclip.com/content/repositories/placeholderapi/")
+    maven("https://jitpack.io/")
 }
 
 dependencies {
+    // Provided by the server at runtime.
     compileOnly("org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT")
-    compileOnly("me.clip:placeholderapi:2.11.5")
-    
-    // --- ADDING BOTH HOLOGRAM APIS ---
-    // Both are optional and only needed for compiling.
+
+    // Optional integrations (soft dependencies, only needed to compile).
+    compileOnly("me.clip:placeholderapi:2.11.6")
     compileOnly("com.github.decentsoftware-eu:decentholograms:2.8.6")
-    compileOnly("com.github.OllivDev:FancyHolograms:2.1.1")
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7.1") {
+        isTransitive = false // It would pull in an old Bukkit version.
+    }
 }
 
 java {
@@ -32,17 +31,23 @@ java {
 }
 
 tasks {
-    shadowJar {
-        archiveBaseName.set("GachaCrate")
-        archiveClassifier.set("")
-        archiveVersion.set(project.version.toString())
-    }
-
-    build {
-        dependsOn(shadowJar)
-    }
-    
     withType<JavaCompile> {
         options.encoding = "UTF-8"
+        options.release.set(17)
+    }
+
+    processResources {
+        // Puts the Gradle version into plugin.yml, so there is only one place to bump it.
+        val props = mapOf("version" to project.version)
+        inputs.properties(props)
+        filteringCharset = "UTF-8"
+        filesMatching("plugin.yml") {
+            expand(props)
+        }
+    }
+
+    jar {
+        archiveBaseName.set("GachaCrate")
+        archiveClassifier.set("")
     }
 }

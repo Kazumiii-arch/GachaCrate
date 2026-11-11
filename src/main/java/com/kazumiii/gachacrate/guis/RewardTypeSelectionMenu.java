@@ -1,24 +1,19 @@
-// ========================================================================
-// File: RewardTypeSelectionMenu.java
-// Location: /src/main/java/com/kazumiii/gachacrate/guis/RewardTypeSelectionMenu.java
-// ========================================================================
 package com.kazumiii.gachacrate.guis;
 
-import com.kazumiii.gachacrate.GachaCrate;
-import com.kazumiii.gachacrate.conversation.CommandPrompt;
+import com.kazumiii.gachacrate.conversation.ChatPrompt;
 import com.kazumiii.gachacrate.crates.Crate;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import com.kazumiii.gachacrate.crates.Reward;
+import com.kazumiii.gachacrate.util.Items;
+import com.kazumiii.gachacrate.util.Text;
 import org.bukkit.Material;
-import org.bukkit.conversations.Conversation;
-import org.bukkit.conversations.ConversationFactory;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 
+/**
+ * Choose between adding an item reward or a command reward.
+ */
 public class RewardTypeSelectionMenu extends Menu {
 
     private final Crate crate;
@@ -29,54 +24,73 @@ public class RewardTypeSelectionMenu extends Menu {
     }
 
     @Override
-    public void open() {
-        inventory = Bukkit.createInventory(this, 27, "Select Reward Type");
-
-        ItemStack itemReward = new ItemStack(Material.DIAMOND_SWORD);
-        ItemMeta itemMeta = itemReward.getItemMeta();
-        itemMeta.setDisplayName(ChatColor.AQUA + "Add Item Reward");
-        itemMeta.setLore(Arrays.asList(ChatColor.GRAY + "Add a physical item from", ChatColor.GRAY + "your inventory as a reward."));
-        itemReward.setItemMeta(itemMeta);
-
-        ItemStack commandReward = new ItemStack(Material.COMMAND_BLOCK);
-        ItemMeta commandMeta = commandReward.getItemMeta();
-        commandMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "Add Command Reward");
-        commandMeta.setLore(Arrays.asList(ChatColor.GRAY + "Add a console command", ChatColor.GRAY + "as a reward."));
-        commandReward.setItemMeta(commandMeta);
-
-        ItemStack backButton = new ItemStack(Material.BARRIER);
-        ItemMeta backMeta = backButton.getItemMeta();
-        backMeta.setDisplayName(ChatColor.RED + "« Back");
-        backButton.setItemMeta(backMeta);
-
-        inventory.setItem(12, itemReward);
-        inventory.setItem(14, commandReward);
-        inventory.setItem(18, backButton);
-
-        player.openInventory(inventory);
+    protected String getTitle() {
+        return "§8Add Reward: " + crate.getName();
     }
 
     @Override
-    public void handleMenu(InventoryClickEvent event) {
-        event.setCancelled(true);
-        ItemStack clicked = event.getCurrentItem();
-        if (clicked == null || clicked.getType() == Material.AIR) return;
+    protected int getSize() {
+        return 27;
+    }
 
-        switch (clicked.getType()) {
-            case DIAMOND_SWORD:
-                new AddItemMenu(player, crate).open();
-                break;
-            case COMMAND_BLOCK:
-                player.closeInventory();
-                ConversationFactory cf = new ConversationFactory(GachaCrate.getInstance());
-                Conversation convo = cf.withFirstPrompt(new CommandPrompt(crate)).withLocalEcho(false).buildConversation(player);
-                convo.begin();
-                break;
-            case BARRIER:
-                new CrateEditorMenu(player, crate).open();
-                break;
-            default:
-                break;
+    @Override
+    protected void draw() {
+        fill(Material.GRAY_STAINED_GLASS_PANE);
+
+        button(11, Items.of(Material.DIAMOND_SWORD).name("&bItem Reward")
+                .lore("&7Give an item from your inventory.").build(),
+                e -> new AddItemMenu(player, crate).open());
+
+        button(13, Items.of(Material.HOPPER).name("&bAdd Item in Hand")
+                .lore("&7Quickly add the item you're holding", "&7(common rarity, weight 10).", "",
+                        "&7Edit it afterwards to change", "&7the rarity and weight.").build(), e -> {
+            if (player.getInventory().getItemInMainHand().getType() == Material.AIR) {
+                Text.send(player, "&cHold the item you want to add first.");
+                return;
+            }
+            Reward reward = new Reward(player.getInventory().getItemInMainHand().clone(),
+                    plugin().getRarityManager().getLowest(), 10);
+            crate.addReward(reward);
+            plugin().getCrateManager().saveCrates();
+            Text.send(player, "&aItem in hand added. You can now set its rarity and weight.");
+            new RewardEditorMenu(player, crate, reward).open();
+        });
+
+        button(15, Items.of(Material.COMMAND_BLOCK).name("&dCommand Reward")
+                .lore("&7Run console commands as a reward,", "&7e.g. give money or a rank.").build(),
+                e -> askCommands());
+
+        button(18, Items.of(Material.ARROW).name("&e« Back").build(),
+                e -> new CrateEditorMenu(player, crate).open());
+    }
+
+    private void askCommands() {
+        final Reward[] created = {null};
+        ChatPrompt.ask(player, "&eType the command without '/'. Use &f{player} &efor the winner's name. "
+                        + "Separate several commands with &f|&e. Example: &feco give {player} 500 | say {player} got rich!",
+                input -> {
+                    List<String> commands = splitCommands(input);
+                    if (commands.isEmpty()) return "Please type at least one command.";
+                    Reward reward = new Reward(commands, plugin().getRarityManager().getLowest(), 10);
+                    crate.addReward(reward);
+                    plugin().getCrateManager().saveCrates();
+                    Text.send(player, "&aCommand reward added. Set its rarity, weight and icon next.");
+                    created[0] = reward;
+                    return null;
+                },
+                () -> {
+                    if (created[0] != null) new RewardEditorMenu(player, crate, created[0]).open();
+                    else open();
+                });
+    }
+
+    /** Splits "cmd one | cmd two" into separate commands. */
+    public static List<String> splitCommands(String input) {
+        List<String> commands = new ArrayList<>();
+        for (String part : input.split("\\|")) {
+            String clean = Reward.cleanCommand(part);
+            if (!clean.isEmpty()) commands.add(clean);
         }
+        return commands;
     }
 }

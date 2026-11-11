@@ -1,7 +1,3 @@
-// ========================================================================
-// File: OpeningMode.java
-// Location: /src/main/java/com/kazumiii/gachacrate/crates/OpeningMode.java
-// ========================================================================
 package com.kazumiii.gachacrate.crates;
 
 public enum OpeningMode {
