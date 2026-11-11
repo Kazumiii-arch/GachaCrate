@@ -69,16 +69,38 @@ update-checker:
 # How often player data (pity, stats) is saved, in minutes. 0 = only on quit/shutdown.
 autosave-minutes: 5
 
-# --- HOLOGRAMS (needs DecentHolograms) ---
+# --- HOLOGRAMS ---
 hologram:
-  height: 2.2
-  # {crate} = crate name shown to players.
+  # auto            = built-in holograms (no extra plugin needed)
+  # builtin         = same as auto
+  # decentholograms = use the DecentHolograms plugin (shows each player their own pity counter)
+  # none            = no holograms
+  provider: auto
+  # Lines above every crate block. Use '&' or '&#RRGGBB' colors.
+  # {crate} = crate name, {rewards} = number of rewards.
+  # PlaceholderAPI placeholders that don't need a player also work, e.g. %gachacrate_top_1_name%.
   lines:
-    - "&b&l{crate}"
+    - "{crate}"
+    - "&7{rewards} rewards"
     - "&eLeft-Click to Preview"
     - "&aRight-Click with a Key to Open"
-  # Extra line added when the crate's pity system is on. Needs PlaceholderAPI.
+  # Extra line for crates with pity (DecentHolograms only, needs PlaceholderAPI).
   pity-line: "%gachacrate_pity_text_{id}%"
+  # Height above the crate block (DecentHolograms).
+  height: 2.2
+
+  builtin:
+    # Height of the text above the crate block.
+    height: 1.8
+    # A reward item spinning above the crate, showing a different prize every few seconds.
+    show-item: true
+    item-change-seconds: 3
+    # Dark background behind the text.
+    background: true
+    # How often the text is refreshed (for placeholders), in seconds.
+    update-seconds: 5
+    # Extra line for crates with pity. {rarity} = guaranteed rarity, {threshold} = opens needed.
+    pity-line: "&dGuaranteed {rarity} &dwithin {threshold} opens"
 
 # --- MESSAGES ---
 # Use '&' for color codes.

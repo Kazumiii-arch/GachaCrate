@@ -109,7 +109,7 @@ public final class GachaCrate extends JavaPlugin {
         }
         if (historyManager != null) historyManager.saveNow();
         if (crateManager != null) crateManager.saveCrates();
-        if (hologramManager != null && physicalCrateManager != null) hologramManager.removeAll();
+        if (hologramManager != null && physicalCrateManager != null) hologramManager.shutdown();
         if (particleTask != null) particleTask.cancel();
         getLogger().info("GachaCrate disabled.");
     }
@@ -122,6 +122,7 @@ public final class GachaCrate extends JavaPlugin {
         hologramManager.removeAll();
 
         reloadConfig();
+        hologramManager.setup();
         rarityManager.load();
         keyManager.reload();
         crateManager.loadCrates();

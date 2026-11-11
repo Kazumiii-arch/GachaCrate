@@ -52,6 +52,7 @@ public class WorldAnimation implements OpeningSession {
         this.pool = crate.getValidRewards();
         if (crateBlock != null) {
             this.base = crateBlock.clone().add(0.5, 1.0, 0.5);
+            plugin.getHologramManager().hide(crateBlock, (RISE_TICKS + HOLD_TICKS) * 50L + 1000L);
         } else {
             // No crate block (key in hand): play it a couple of blocks in front of the player.
             Vector look = player.getLocation().getDirection().setY(0);

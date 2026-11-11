@@ -22,7 +22,7 @@ A gacha crate plugin for Minecraft Survival servers (Spigot / Paper 1.20 – 1.2
 - **Update checker**: tells the console and admins when a new version is released.
 - **Opening modes**: right-click a crate block with a key, or right-click anywhere while holding the key.
 - **Mass open**: sneak + right-click to open a whole stack of keys at once, with a summary in chat.
-- **Physical crates** with idle particle effects and holograms (holograms need [DecentHolograms](https://www.spigotmc.org/resources/96927/)).
+- **Physical crates** with idle particle effects and **built-in holograms**: text above every crate plus a spinning reward item that shows a different prize every few seconds. No extra plugin needed. [DecentHolograms](https://www.spigotmc.org/resources/96927/) is still supported if you prefer it (`hologram.provider` in config.yml).
 - **Announcements** for rare wins, with a firework that doesn't hurt anyone.
 - **PlaceholderAPI** placeholders, and PlaceholderAPI placeholders also work inside reward commands.
 - **Player menu** (`/gacha`): browse crates, claim daily keys, open the shop, and see wins and leaderboards.
@@ -37,7 +37,7 @@ A gacha crate plugin for Minecraft Survival servers (Spigot / Paper 1.20 – 1.2
 
 1. Download the jar from the latest **Actions** run (Build GachaCrate Plugin → Artifacts) or a release.
 2. Put it in your server's `plugins` folder and restart.
-3. Optional: install DecentHolograms (holograms), PlaceholderAPI (placeholders) and Vault + an economy plugin (key shop).
+3. Optional: PlaceholderAPI (placeholders), Vault + an economy plugin (key shop), and DecentHolograms if you'd rather use it than the built-in holograms.
 
 ## Quick start
 
