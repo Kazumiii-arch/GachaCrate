@@ -55,7 +55,14 @@ public final class Text {
     }
 
     public static String prefix() {
-        return color(GachaCrate.getInstance().getConfig().getString("prefix", "&6&lGacha &8» &r"));
+        return color(GachaCrate.getInstance().getConfig().getString("prefix", "&2&lGacha&a&lCrate &8» &r"));
+    }
+
+    /** Fills PlaceholderAPI placeholders for a player, if PlaceholderAPI is installed. */
+    public static String papi(org.bukkit.entity.Player player, String text) {
+        GachaCrate plugin = GachaCrate.getInstance();
+        if (plugin == null || !plugin.isPlaceholderApiEnabled() || text == null || text.indexOf('%') < 0) return text;
+        return com.kazumiii.gachacrate.holograms.PlaceholderHook.apply(player, text);
     }
 
     /** Sends a message with the plugin prefix. Supports '&' and '§' colors. */

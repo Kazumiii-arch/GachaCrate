@@ -59,13 +59,15 @@ public class GachaCommand implements TabExecutor {
             } else if (sender instanceof Player) {
                 new PlayerMenu((Player) sender).open();
             } else {
-                sendHelp(sender, label);
+                sendHelp(sender, label, args);
             }
             return true;
         }
 
         switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "help": sendHelp(sender, label); break;
+            case "help": case "?": sendHelp(sender, label, args); break;
+            case "admin": admin(sender); break;
+            case "keys": keys(sender); break;
             case "menu": menu(sender); break;
             case "daily": daily(sender); break;
             case "shop": shop(sender); break;
@@ -89,7 +91,7 @@ public class GachaCommand implements TabExecutor {
             case "reload": reload(sender); break;
             case "setup": setup(sender); break;
             default:
-                Text.send(sender, "&cUnknown subcommand. Use &f/" + label + " help&c.");
+                Text.send(sender, "&cUnknown command. Type &a/" + label + " help &cto see all commands.");
                 break;
         }
         return true;
@@ -99,38 +101,16 @@ public class GachaCommand implements TabExecutor {
     // Help
     // ------------------------------------------------------------------
 
-    private void sendHelp(CommandSender sender, String label) {
-        String c = "/" + label;
-        sender.sendMessage(Text.color("&6&lGachaCrate &7v" + plugin.getDescription().getVersion()));
-        help(sender, "gacha.user.view", c + " menu", "Open the crate menu");
-        help(sender, "gacha.user.view", c + " view <crate>", "Preview a crate's rewards");
-        help(sender, "gacha.user.daily", c + " daily", "Claim today's free keys");
-        help(sender, "gacha.user.shop", c + " shop", "Buy keys");
-        help(sender, "gacha.user.shop", c + " buy <crate> [amount]", "Buy keys directly");
-        help(sender, "gacha.user.history", c + " history", "Your recent wins");
-        help(sender, "gacha.user.history", c + " wins", "Recent big wins on the server");
-        help(sender, "gacha.user.top", c + " top [crate]", "Top crate openers");
-        help(sender, "gacha.user.stats.self", c + " stats", "Your opening stats and pity");
-        help(sender, "gacha.admin.edit", c, "Open the admin menu");
-        help(sender, "gacha.admin.edit", c + " edit <crate>", "Edit a crate in the menu");
-        help(sender, "gacha.admin.edit", c + " list", "List all crates");
-        help(sender, "gacha.admin.create", c + " create <name>", "Create a crate");
-        help(sender, "gacha.admin.create", c + " setup", "Create 4 ready-made example crates");
-        help(sender, "gacha.admin.delete", c + " delete <name>", "Delete a crate");
-        help(sender, "gacha.admin.additem", c + " additem <crate> <rarity> <weight>", "Add the item in your hand");
-        help(sender, "gacha.admin.addcmd", c + " addcmd <crate> <rarity> <weight> <command>", "Add a command reward");
-        help(sender, "gacha.admin.givekey", c + " givekey <player|all> <crate> [amount]", "Give keys");
-        help(sender, "gacha.admin.open", c + " open <crate> [player] [amount]", "Open a crate for free");
-        help(sender, "gacha.admin.stats.other", c + " stats <player>", "Someone else's stats");
-        help(sender, "gacha.admin.history.other", c + " history <player>", "Someone else's wins");
-        help(sender, "gacha.admin.resetpity", c + " resetpity <player> <crate|all>", "Reset pity");
-        help(sender, "gacha.admin.setblock", c + " setblock <crate>", "Make the block you look at a crate");
-        help(sender, "gacha.admin.setblock", c + " removeblock", "Remove the crate you look at");
-        help(sender, "gacha.admin.reload", c + " reload", "Reload all files");
-    }
-
-    private void help(CommandSender sender, String permission, String usage, String description) {
-        if (sender.hasPermission(permission)) sender.sendMessage(Text.color("&e" + usage + " &7- " + description));
+    private void sendHelp(CommandSender sender, String label, String[] args) {
+        int page = 1;
+        if (args.length > 1) {
+            try {
+                page = Integer.parseInt(args[1]);
+            } catch (NumberFormatException ignored) {
+                // Stay on page 1.
+            }
+        }
+        new HelpMenu(plugin, label).send(sender, label, page);
     }
 
     // ------------------------------------------------------------------
@@ -179,6 +159,26 @@ public class GachaCommand implements TabExecutor {
     // ------------------------------------------------------------------
     // Subcommands
     // ------------------------------------------------------------------
+
+    private void admin(CommandSender sender) {
+        Player player = requirePlayer(sender);
+        if (player != null && check(sender, "gacha.admin.edit")) new MainMenu(player).open();
+    }
+
+    private void keys(CommandSender sender) {
+        Player player = requirePlayer(sender);
+        if (player == null || !check(sender, "gacha.user.keys")) return;
+        Map<String, Integer> keys = plugin.getKeyManager().countKeys(player);
+        Text.send(sender, "&2&lYour keys");
+        boolean any = false;
+        for (Crate crate : plugin.getCrateManager().getAllCrates().values()) {
+            int count = keys.getOrDefault(crate.getId(), 0);
+            if (count <= 0) continue;
+            any = true;
+            sender.sendMessage(Text.color("  &a▸ ") + crate.getDisplayName() + Text.color(" &8- &f" + count));
+        }
+        if (!any) sender.sendMessage(Text.color("  &7You don't have any keys."));
+    }
 
     private void menu(CommandSender sender) {
         Player player = requirePlayer(sender);
@@ -417,9 +417,17 @@ public class GachaCommand implements TabExecutor {
             targets.addAll(Bukkit.getOnlinePlayers());
         } else {
             Player target = Bukkit.getPlayerExact(args[1]);
-            if (target == null) target = Bukkit.getPlayer(args[1]);
             if (target == null) {
-                Text.send(sender, "&cPlayer '" + args[1] + "' isn't online.");
+                // Offline (e.g. a webstore purchase): save the keys for their next join.
+                OfflinePlayer offline = findPlayer(args[1]);
+                if (offline == null) {
+                    Text.send(sender, "&cPlayer '" + args[1] + "' has never joined the server.");
+                    return;
+                }
+                plugin.getPlayerManager().addPendingKeys(offline.getUniqueId(), crate.getId(), amount);
+                Text.send(sender, "&a" + (offline.getName() == null ? args[1] : offline.getName())
+                        + " is offline. They'll get " + amount + "x " + crate.getName() + " key"
+                        + (amount == 1 ? "" : "s") + " when they join.");
                 return;
             }
             targets.add(target);
@@ -440,7 +448,7 @@ public class GachaCommand implements TabExecutor {
         PlayerData data = plugin.getPlayerManager().getPlayerData(target.getUniqueId());
         if (data == null || data.hasReceivedFirstKey()) return;
         for (String line : plugin.getConfig().getStringList("messages.first-key-welcome")) {
-            target.sendMessage(Text.color(line).replace("{player}", target.getName()));
+            target.sendMessage(Text.color(Text.papi(target, line.replace("{player}", target.getName()))));
         }
         data.setHasReceivedFirstKey(true);
     }
@@ -586,7 +594,7 @@ public class GachaCommand implements TabExecutor {
         if (!check(sender, "gacha.admin.create")) return;
         List<String> created = new StarterCrates(plugin).create();
         if (created.isEmpty()) {
-            Text.send(sender, "&eThe starter crates (vote, rare, legendary, event) already exist.");
+            Text.send(sender, "&eThe starter crates (vote, rare, epic, legendary) already exist.");
             return;
         }
         Text.send(sender, "&aCreated starter crates: &e" + String.join(", ", created));
@@ -610,6 +618,8 @@ public class GachaCommand implements TabExecutor {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>();
             addIf(sender, subs, "gacha.user.view", "view", "menu");
+            addIf(sender, subs, "gacha.user.keys", "keys");
+            addIf(sender, subs, "gacha.admin.edit", "admin");
             addIf(sender, subs, "gacha.user.daily", "daily");
             addIf(sender, subs, "gacha.user.shop", "shop", "buy");
             addIf(sender, subs, "gacha.user.history", "history", "wins");

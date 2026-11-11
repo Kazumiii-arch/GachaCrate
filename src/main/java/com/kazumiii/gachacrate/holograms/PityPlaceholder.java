@@ -19,6 +19,10 @@ import org.bukkit.OfflinePlayer;
  *   <li>%gachacrate_opened_total% – total crates opened</li>
  *   <li>%gachacrate_keys_&lt;crate&gt;% – keys of that crate in the player's inventory</li>
  *   <li>%gachacrate_daily_&lt;crate&gt;% – "Ready" or "Claimed"</li>
+ *   <li>%gachacrate_daily_ready% – how many crates have daily keys ready</li>
+ *   <li>%gachacrate_keys_total% / %gachacrate_pending_keys% – keys held / waiting from offline gifts</li>
+ *   <li>%gachacrate_last_win%, _last_win_rarity, _last_win_crate – the player's latest win</li>
+ *   <li>%gachacrate_crate_&lt;crate&gt;_name / _rewards / _price / _daily / _pity% – crate info</li>
  *   <li>%gachacrate_rank% – the player's leaderboard position</li>
  *   <li>%gachacrate_top_&lt;n&gt;_name% / _value – leaderboard (all crates)</li>
  *   <li>%gachacrate_top_&lt;crate&gt;_&lt;n&gt;_name% / _value – leaderboard for one crate</li>
@@ -64,6 +68,35 @@ public class PityPlaceholder extends PlaceholderExpansion {
         String id = params.toLowerCase();
         PlayerData data = plugin.getPlayerManager().getOfflineData(offline.getUniqueId());
 
+        if (id.equals("keys_total")) {
+            if (offline.getPlayer() == null) return "0";
+            int total = 0;
+            for (int count : plugin.getKeyManager().countKeys(offline.getPlayer()).values()) total += count;
+            return String.valueOf(total);
+        }
+        if (id.equals("pending_keys")) {
+            int total = 0;
+            if (data != null) for (int count : data.getPendingKeys().values()) total += count;
+            return String.valueOf(total);
+        }
+        if (id.equals("daily_ready")) {
+            if (offline.getPlayer() == null) return "0";
+            return String.valueOf(plugin.getShopManager().getClaimableDaily(offline.getPlayer()).size());
+        }
+        if (id.equals("last_win") || id.equals("last_win_rarity") || id.equals("last_win_crate")) {
+            if (data == null || data.getHistory().isEmpty()) return "-";
+            com.kazumiii.gachacrate.history.WinRecord last = data.getHistory().get(0);
+            if (id.equals("last_win")) return last.getRewardName();
+            if (id.equals("last_win_crate")) {
+                Crate crate = plugin.getCrateManager().getCrate(last.getCrateId());
+                return crate == null ? last.getCrateId() : crate.getDisplayName();
+            }
+            Rarity rarity = plugin.getRarityManager().getRarity(last.getRarityId());
+            return rarity == null ? last.getRarityId() : rarity.getDisplayName();
+        }
+        if (id.startsWith("crate_")) {
+            return crateInfo(id.substring(6));
+        }
         if (id.equals("opened_total")) {
             return String.valueOf(data == null ? 0 : data.getTotalCratesOpened());
         }
@@ -147,5 +180,21 @@ public class PityPlaceholder extends PlaceholderExpansion {
         if (top.size() < position) return field.equals("value") ? "0" : "-";
         com.kazumiii.gachacrate.history.LeaderboardManager.Entry entry = top.get(position - 1);
         return field.equals("value") ? String.valueOf(entry.value) : entry.name;
+    }
+
+    /** crate_<crate>_name / _rewards / _price / _daily / _pity. */
+    private String crateInfo(String rest) {
+        int split = rest.lastIndexOf('_');
+        if (split <= 0) return null;
+        Crate crate = plugin.getCrateManager().getCrate(rest.substring(0, split));
+        if (crate == null) return "";
+        switch (rest.substring(split + 1)) {
+            case "name": return crate.getDisplayName();
+            case "rewards": return String.valueOf(crate.getValidRewards().size());
+            case "price": return crate.getKeyPrice() > 0 ? plugin.getShopManager().format(crate.getKeyPrice()) : "-";
+            case "daily": return String.valueOf(crate.getDailyFreeKeys());
+            case "pity": return crate.isPityEnabled() ? String.valueOf(crate.getPityThreshold()) : "-";
+            default: return null;
+        }
     }
 }

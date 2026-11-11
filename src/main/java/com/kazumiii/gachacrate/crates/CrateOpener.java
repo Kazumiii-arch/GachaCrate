@@ -1,12 +1,14 @@
 package com.kazumiii.gachacrate.crates;
 
 import com.kazumiii.gachacrate.GachaCrate;
+import com.kazumiii.gachacrate.animations.IdleParticleTask;
 import com.kazumiii.gachacrate.animations.WorldAnimation;
 import com.kazumiii.gachacrate.guis.CardPickMenu;
 import com.kazumiii.gachacrate.guis.CrateAnimationMenu;
 import com.kazumiii.gachacrate.holograms.PlaceholderHook;
 import com.kazumiii.gachacrate.player.PlayerData;
 import com.kazumiii.gachacrate.util.Compat;
+import com.kazumiii.gachacrate.util.Perms;
 import com.kazumiii.gachacrate.util.Text;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -45,6 +47,7 @@ public class CrateOpener {
     private final GachaCrate plugin;
     private final NamespacedKey fireworkTag;
     private final Map<UUID, OpeningSession> activeAnimations = new HashMap<>();
+    private final Map<UUID, Long> lastOpen = new HashMap<>();
 
     public CrateOpener(GachaCrate plugin) {
         this.plugin = plugin;
@@ -78,8 +81,17 @@ public class CrateOpener {
             Text.send(player, "&cYou don't have permission to open this crate.");
             return false;
         }
+        double cooldown = plugin.getConfig().getDouble("opening.cooldown-seconds", 0);
+        if (cooldown > 0 && !player.hasPermission("gacha.bypass.cooldown")) {
+            Long last = lastOpen.get(player.getUniqueId());
+            long wait = last == null ? 0 : (long) (cooldown * 1000) - (System.currentTimeMillis() - last);
+            if (wait > 0) {
+                Text.send(player, "&cSlow down! You can open another crate in &f" + Text.number(wait / 1000.0) + "s&c.");
+                return false;
+            }
+        }
         LocalDate today = LocalDate.now();
-        if (!crate.isAvailable(today)) {
+        if (!crate.isAvailable(today) && !player.hasPermission("gacha.bypass.timelimit")) {
             if (crate.getStartDate() != null && today.isBefore(crate.getStartDate())) {
                 Text.send(player, "&cThis crate opens on &e" + crate.getStartDate() + "&c.");
             } else {
@@ -121,9 +133,12 @@ public class CrateOpener {
                 && plugin.getConfig().getBoolean("opening.mass-open.enabled", true)
                 && player.hasPermission("gacha.user.massopen");
         if (massAllowed) {
-            int max = Math.max(1, plugin.getConfig().getInt("opening.mass-open.max-per-click", 64));
+            // gacha.massopen.<number> lets ranks open more at once than the config default.
+            int max = Math.max(1, Perms.highest(player, "gacha.massopen.",
+                    plugin.getConfig().getInt("opening.mass-open.max-per-click", 64)));
             amount = Math.min(hand.getAmount(), max);
         }
+        lastOpen.put(player.getUniqueId(), System.currentTimeMillis());
 
         // Use up the keys.
         if (hand.getAmount() <= amount) {
@@ -156,6 +171,9 @@ public class CrateOpener {
 
     private void openOne(Player player, Crate crate, Location crateBlock) {
         Roll roll = roll(player, crate);
+        if (crateBlock != null && crate.getIdleParticle() != null) {
+            IdleParticleTask.openBurst(crateBlock, crate.getIdleParticle());
+        }
         OpeningSession session;
         switch (crate.getAnimationType()) {
             case INSTANT:
@@ -243,6 +261,7 @@ public class CrateOpener {
             }
         }
         plugin.getHistoryManager().record(player, data, crate, reward);
+        plugin.getWinLogger().log(player, crate, reward, pity);
         plugin.getLeaderboardManager().update(data);
         return new Roll(reward, pity);
     }
@@ -329,7 +348,7 @@ public class CrateOpener {
     }
 
     private String fill(String message, Player player, Crate crate, Reward reward) {
-        return Text.color(message)
+        return Text.color(Text.papi(player, message))
                 .replace("{player}", player.getName())
                 .replace("{reward}", reward.getDisplayName())
                 .replace("{rarity}", reward.getRarity().getDisplayName())
@@ -447,6 +466,11 @@ public class CrateOpener {
     }
 
     /** Ends a player's animation right away and gives the reward (on quit). */
+    /** Forgets a player who left (keeps memory low on big servers). */
+    public void forget(Player player) {
+        lastOpen.remove(player.getUniqueId());
+    }
+
     public void finishNow(Player player) {
         OpeningSession session = activeAnimations.get(player.getUniqueId());
         if (session != null) session.finish();

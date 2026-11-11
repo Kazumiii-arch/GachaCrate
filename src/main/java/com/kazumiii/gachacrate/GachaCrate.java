@@ -10,6 +10,7 @@ import com.kazumiii.gachacrate.guis.Menu;
 import com.kazumiii.gachacrate.guis.MenuListener;
 import com.kazumiii.gachacrate.history.HistoryManager;
 import com.kazumiii.gachacrate.history.LeaderboardManager;
+import com.kazumiii.gachacrate.history.WinLogger;
 import com.kazumiii.gachacrate.holograms.HologramManager;
 import com.kazumiii.gachacrate.holograms.PityPlaceholder;
 import com.kazumiii.gachacrate.items.KeyManager;
@@ -40,6 +41,7 @@ public final class GachaCrate extends JavaPlugin {
     private HistoryManager historyManager;
     private LeaderboardManager leaderboardManager;
     private ShopManager shopManager;
+    private WinLogger winLogger;
     private BukkitTask particleTask;
     private boolean placeholderApiEnabled;
 
@@ -56,6 +58,7 @@ public final class GachaCrate extends JavaPlugin {
         crateManager = new CrateManager(this);
         crateOpener = new CrateOpener(this);
         historyManager = new HistoryManager(this);
+        winLogger = new WinLogger(this);
         leaderboardManager = new LeaderboardManager(this);
         shopManager = new ShopManager(this);
 
@@ -108,6 +111,7 @@ public final class GachaCrate extends JavaPlugin {
             playerManager.saveAll();
         }
         if (historyManager != null) historyManager.saveNow();
+        if (winLogger != null) winLogger.flush();
         if (crateManager != null) crateManager.saveCrates();
         if (hologramManager != null && physicalCrateManager != null) hologramManager.shutdown();
         if (particleTask != null) particleTask.cancel();
@@ -145,5 +149,6 @@ public final class GachaCrate extends JavaPlugin {
     public HistoryManager getHistoryManager() { return historyManager; }
     public LeaderboardManager getLeaderboardManager() { return leaderboardManager; }
     public ShopManager getShopManager() { return shopManager; }
+    public WinLogger getWinLogger() { return winLogger; }
     public boolean isPlaceholderApiEnabled() { return placeholderApiEnabled; }
 }

@@ -89,6 +89,21 @@ public class PlayerManager {
         for (PlayerData data : online.values()) writeToDisk(data);
     }
 
+    /**
+     * Saves keys for a player to receive when they next join (offline /gacha givekey, webstores).
+     * Works for online players too (they get them on their next join).
+     */
+    public void addPendingKeys(UUID uuid, String crateName, int amount) {
+        PlayerData data = online.get(uuid);
+        if (data != null) {
+            data.addPendingKeys(crateName, amount);
+            return;
+        }
+        data = readFromDisk(uuid);
+        data.addPendingKeys(crateName, amount);
+        writeToDisk(data);
+    }
+
     /** Edits an offline player's file directly (used by /gacha resetpity). */
     public boolean resetPityOffline(UUID uuid, String crateName) {
         PlayerData data = getOfflineData(uuid);
@@ -167,6 +182,13 @@ public class PlayerManager {
                 }
             }
         }
+        ConfigurationSection pending = config.getConfigurationSection("pending-keys");
+        if (pending != null) {
+            for (String crate : pending.getKeys(false)) {
+                int amount = pending.getInt(crate);
+                if (amount > 0) data.getPendingKeys().put(crate.toLowerCase(Locale.ROOT), amount);
+            }
+        }
         for (String line : config.getStringList("history")) {
             WinRecord record = WinRecord.parse(line);
             if (record != null) data.getHistory().add(record);
@@ -182,6 +204,7 @@ public class PlayerManager {
         config.set("has-received-first-key", data.hasReceivedFirstKey());
         if (data.getLastKnownName() != null) config.set("name", data.getLastKnownName());
         data.getDailyClaims().forEach((crate, day) -> config.set("daily-claims." + crate, day.toString()));
+        data.getPendingKeys().forEach((crate, amount) -> config.set("pending-keys." + crate, amount));
         List<String> history = new ArrayList<>();
         for (WinRecord record : data.getHistory()) history.add(record.serialize());
         if (!history.isEmpty()) config.set("history", history);

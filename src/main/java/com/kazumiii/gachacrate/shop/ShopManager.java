@@ -3,6 +3,7 @@ package com.kazumiii.gachacrate.shop;
 import com.kazumiii.gachacrate.GachaCrate;
 import com.kazumiii.gachacrate.crates.Crate;
 import com.kazumiii.gachacrate.player.PlayerData;
+import com.kazumiii.gachacrate.util.Perms;
 import com.kazumiii.gachacrate.util.Text;
 import org.bukkit.entity.Player;
 
@@ -156,11 +157,15 @@ public class ShopManager {
         LocalDate today = LocalDate.now();
         int total = 0;
         Text.send(player, "&a&lDaily keys claimed!");
+        // Ranks can get more: gacha.daily.multiplier.2 = double daily keys, .3 = triple, ...
+        int multiplier = Math.max(1, Perms.highest(player, "gacha.daily.multiplier.", 1));
         for (Crate crate : claimable) {
-            plugin.getKeyManager().giveKeys(player, crate, crate.getDailyFreeKeys());
+            int amount = crate.getDailyFreeKeys() * multiplier;
+            plugin.getKeyManager().giveKeys(player, crate, amount);
             data.setDailyClaimed(crate.getName(), today);
-            total += crate.getDailyFreeKeys();
-            player.sendMessage(Text.color("  &8• &e" + crate.getDailyFreeKeys() + "x ") + crate.getDisplayName() + Text.color(" &7key"));
+            total += amount;
+            player.sendMessage(Text.color("  &a▸ &f" + amount + "x ") + crate.getDisplayName() + Text.color(" &7key"
+                    + (multiplier > 1 ? " &a(x" + multiplier + " rank bonus)" : "")));
         }
         player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.5f);
         return total;

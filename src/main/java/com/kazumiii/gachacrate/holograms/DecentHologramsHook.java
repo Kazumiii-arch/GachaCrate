@@ -10,20 +10,27 @@ import java.util.List;
  * The only class that touches the DecentHolograms API.
  * It is only created when DecentHolograms is installed.
  */
-class DecentHologramsHook {
+class DecentHologramsHook implements HologramProvider {
 
     DecentHologramsHook() {
         // Fails fast (NoClassDefFoundError) if the API isn't really there.
         DHAPI.class.getName();
     }
 
-    void create(String name, Location location, List<String> lines) {
+    @Override
+    public String getName() {
+        return "DecentHolograms";
+    }
+
+    @Override
+    public void create(String name, Location location, List<String> lines) {
         remove(name);
         // 'false' = don't save to DecentHolograms' own files; GachaCrate recreates them on startup.
         DHAPI.createHologram(name, location, false, lines);
     }
 
-    void remove(String name) {
+    @Override
+    public void remove(String name) {
         Hologram hologram = DHAPI.getHologram(name);
         if (hologram != null) hologram.delete();
     }

@@ -2,6 +2,7 @@ package com.kazumiii.gachacrate.crates;
 
 import com.kazumiii.gachacrate.GachaCrate;
 import com.kazumiii.gachacrate.animations.AnimationType;
+import com.kazumiii.gachacrate.animations.ParticleStyle;
 import com.kazumiii.gachacrate.util.Compat;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -94,6 +95,8 @@ public class CrateManager {
                 "Allows opening the " + crate.getName() + " crate.", PermissionDefault.TRUE);
         try {
             pm.addPermission(permission);
+            // gacha.user.open.* also gives this crate's permission.
+            permission.addParent("gacha.user.open.*", true);
         } catch (IllegalArgumentException ignored) {
             // Already registered.
         }
@@ -117,6 +120,7 @@ public class CrateManager {
             section.set("opening-mode", crate.getOpeningMode().name());
             section.set("animation-type", crate.getAnimationType().name());
             if (crate.getIdleParticle() != null) section.set("idle-particle", crate.getIdleParticle().name());
+            section.set("idle-particle-style", crate.getParticleStyle().name());
 
             section.set("pity-system.enabled", crate.isPityEnabled());
             section.set("pity-system.threshold", crate.getPityThreshold());
@@ -198,6 +202,7 @@ public class CrateManager {
         crate.setOpeningMode(parseEnum(OpeningMode.class, section.getString("opening-mode"), OpeningMode.PHYSICAL_BLOCKS));
         crate.setAnimationType(parseEnum(AnimationType.class, section.getString("animation-type"), AnimationType.REEL));
 
+        crate.setParticleStyle(parseEnum(ParticleStyle.class, section.getString("idle-particle-style"), ParticleStyle.HELIX));
         String particleName = section.getString("idle-particle");
         if (particleName != null) {
             crate.setIdleParticle(Compat.particle(particleName));

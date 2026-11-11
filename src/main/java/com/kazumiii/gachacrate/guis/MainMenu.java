@@ -103,7 +103,7 @@ public class MainMenu extends Menu {
         });
 
         button(46, Items.of(Material.CHEST_MINECART).name("&dStarter Crates")
-                .lore("&7Creates 4 ready-made crates:", "&aVote&7, &9Rare&7, &6Legendary &7and &dEvent&7,",
+                .lore("&7Creates 4 ready-made crates, from", "&aVote &7→ &9Rare &7→ &5Epic &7→ &6Legendary&7,",
                         "&7with balanced rewards to edit.", "", "&7Existing crates aren't touched.").build(), e -> {
             if (!player.hasPermission("gacha.admin.create")) {
                 Text.send(player, "&cYou don't have permission to create crates.");

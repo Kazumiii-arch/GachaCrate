@@ -3,119 +3,154 @@ version: '${version}'
 main: com.kazumiii.gachacrate.GachaCrate
 api-version: '1.20'
 author: Kazumiii
-description: A Minecraft Survival server gacha crate plugin with full in-game editing.
+description: Gacha crates with in-game editing, pity, daily keys, a key shop, leaderboards and animations.
+website: https://github.com/Kazumiii-arch/GachaCrate
 
-softdepend: [DecentHolograms, PlaceholderAPI, Vault]
+softdepend: [PlaceholderAPI, Vault, DecentHolograms, FancyHolograms]
 
 commands:
   gacha:
-    description: Main command for the GachaCrate plugin.
+    description: Main command for GachaCrate.
     usage: /gacha help
-    aliases: [gc, crate]
+    aliases: [gc, crate, crates]
 
+# ----------------------------------------------------------------------
+# Permission groups. Give a rank one of these to grant everything inside.
+#   gacha.*      everything
+#   gacha.admin  all admin commands
+#   gacha.user   all player features (everyone has it by default)
+#   gacha.bypass all bypasses (cooldown, time limits)
+#
+# Per-crate:  gacha.user.open.<crate>   (everyone by default; negate to lock a crate)
+# Rank perks: gacha.daily.multiplier.<n>   e.g. .2 = double daily keys
+#             gacha.massopen.<n>           e.g. .128 = open up to 128 keys at once
+# ----------------------------------------------------------------------
 permissions:
   gacha.*:
-    description: Grants access to all GachaCrate features.
+    description: Everything in GachaCrate.
     default: op
     children:
       gacha.admin: true
       gacha.user: true
+      gacha.bypass: true
 
   gacha.admin:
-    description: Grants access to all admin commands.
+    description: All admin commands.
     default: op
     children:
+      gacha.admin.edit: true
       gacha.admin.create: true
       gacha.admin.delete: true
       gacha.admin.additem: true
       gacha.admin.addcmd: true
-      gacha.admin.edit: true
       gacha.admin.givekey: true
-      gacha.admin.stats.other: true
-      gacha.admin.setblock: true
       gacha.admin.open: true
+      gacha.admin.setblock: true
+      gacha.admin.stats.other: true
+      gacha.admin.history.other: true
       gacha.admin.resetpity: true
       gacha.admin.reload: true
-      gacha.admin.history.other: true
       gacha.admin.update: true
 
   gacha.user:
-    description: Grants access to all user-level commands and actions.
+    description: All player features.
     default: true
     children:
+      gacha.user.menu: true
       gacha.user.view: true
-      gacha.user.stats.self: true
+      gacha.user.open.*: true
       gacha.user.massopen: true
       gacha.user.daily: true
       gacha.user.shop: true
+      gacha.user.keys: true
       gacha.user.history: true
       gacha.user.top: true
+      gacha.user.stats.self: true
 
-  # Admin permissions
+  gacha.bypass:
+    description: All bypasses.
+    default: op
+    children:
+      gacha.bypass.cooldown: true
+      gacha.bypass.timelimit: true
+
+  # --- Admin ---
+  gacha.admin.edit:
+    description: Use the admin menu, /gacha edit and /gacha list.
+    default: op
   gacha.admin.create:
-    description: Allows creating new crates.
+    description: Create crates and the starter crates (/gacha setup).
     default: op
   gacha.admin.delete:
-    description: Allows deleting existing crates.
+    description: Delete crates.
     default: op
   gacha.admin.additem:
-    description: Allows use of the /gacha additem command.
+    description: Add the held item as a reward.
     default: op
   gacha.admin.addcmd:
-    description: Allows use of the /gacha addcmd command.
-    default: op
-  gacha.admin.edit:
-    description: Allows full use of the /gacha GUI editor.
+    description: Add command rewards.
     default: op
   gacha.admin.givekey:
-    description: Allows giving crate keys to players.
-    default: op
-  gacha.admin.stats.other:
-    description: Allows viewing the stats of other players.
-    default: op
-  gacha.admin.setblock:
-    description: Allows setting and removing physical crate blocks.
+    description: Give keys (also to offline players).
     default: op
   gacha.admin.open:
-    description: Allows opening a crate for free (no key) with /gacha open.
+    description: Open crates for free with /gacha open.
     default: op
-  gacha.admin.resetpity:
-    description: Allows resetting a player's pity counter.
+  gacha.admin.setblock:
+    description: Set and remove crate blocks.
     default: op
-  gacha.admin.reload:
-    description: Allows reloading the plugin's files.
+  gacha.admin.stats.other:
+    description: See other players' stats.
     default: op
   gacha.admin.history.other:
-    description: Allows viewing other players' win history.
+    description: See other players' wins.
+    default: op
+  gacha.admin.resetpity:
+    description: Reset a player's pity.
+    default: op
+  gacha.admin.reload:
+    description: Reload the plugin.
     default: op
   gacha.admin.update:
-    description: Get told on join when a new GachaCrate version is out.
+    description: Get told on join when a new version is out.
     default: op
 
-  # User permissions
+  # --- Player ---
+  gacha.user.menu:
+    description: Open the player menu with /gacha.
+    default: true
   gacha.user.view:
-    description: Allows players to preview crate rewards.
-    default: true
-  gacha.user.stats.self:
-    description: Allows a player to view their own stats.
-    default: true
-  gacha.user.massopen:
-    description: Allows sneak + right-click to open many keys at once.
-    default: true
-  gacha.user.daily:
-    description: Allows claiming daily free keys.
-    default: true
-  gacha.user.shop:
-    description: Allows buying keys in the shop.
-    default: true
-  gacha.user.history:
-    description: Allows viewing your own wins and the server's recent big wins.
-    default: true
-  gacha.user.top:
-    description: Allows viewing the leaderboard.
+    description: Preview crate rewards.
     default: true
   gacha.user.open.*:
-    description: >-
-      Allows opening every crate. Each crate also gets its own permission,
-      gacha.user.open.<crate>, which everyone has by default. Negate it to lock a crate.
+    description: Open every crate.
     default: true
+  gacha.user.massopen:
+    description: Sneak + right-click to open many keys at once.
+    default: true
+  gacha.user.daily:
+    description: Claim daily free keys.
+    default: true
+  gacha.user.shop:
+    description: Buy keys in the shop.
+    default: true
+  gacha.user.keys:
+    description: See your keys with /gacha keys.
+    default: true
+  gacha.user.history:
+    description: See your wins and the server's big wins.
+    default: true
+  gacha.user.top:
+    description: See the leaderboard.
+    default: true
+  gacha.user.stats.self:
+    description: See your own stats.
+    default: true
+
+  # --- Bypass ---
+  gacha.bypass.cooldown:
+    description: Ignore the opening cooldown.
+    default: op
+  gacha.bypass.timelimit:
+    description: Open time-limited crates at any time.
+    default: op

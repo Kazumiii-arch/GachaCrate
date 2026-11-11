@@ -67,6 +67,7 @@ public class IdleParticleMenu extends Menu {
     @Override
     protected void draw() {
         fillRow(3, Material.BLACK_STAINED_GLASS_PANE);
+        // Particles go in the top 3 rows; the shape button sits in the bottom row.
 
         int slot = 0;
         for (Map.Entry<String, Material> choice : CHOICES.entrySet()) {
@@ -83,6 +84,19 @@ public class IdleParticleMenu extends Menu {
                 refresh();
             });
         }
+
+        ParticleStyle style = crate.getParticleStyle();
+        List<String> styleLore = new ArrayList<>();
+        for (ParticleStyle s : ParticleStyle.values()) {
+            styleLore.add((s == style ? "&a► " : "&7") + s.getDisplayName() + (s == style ? " &8- &7" + s.getDescription() : ""));
+        }
+        styleLore.add("");
+        styleLore.add("&e► Click to change the shape");
+        button(31, Items.of(style.getIcon()).name("&bShape: &f" + style.getDisplayName()).lore(styleLore).build(), e -> {
+            crate.setParticleStyle(crate.getParticleStyle().next());
+            plugin().getCrateManager().saveCrates();
+            refresh();
+        });
 
         button(27, Items.of(Material.ARROW).name("&e« Back to Settings").build(),
                 e -> new CrateSettingsMenu(player, crate).open());

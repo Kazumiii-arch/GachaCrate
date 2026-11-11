@@ -19,6 +19,7 @@ public class PlayerData {
     private final Map<String, Integer> cratesOpened = new HashMap<>();
     private final Map<String, Integer> pityCounts = new HashMap<>();
     private final Map<String, LocalDate> dailyClaims = new HashMap<>();
+    private final Map<String, Integer> pendingKeys = new HashMap<>();
     private final List<WinRecord> history = new ArrayList<>(); // Newest first.
     private String lastKnownName;
     private boolean hasReceivedFirstKey;
@@ -91,6 +92,23 @@ public class PlayerData {
     public void setLastKnownName(String name) {
         if (name != null && !name.equals(lastKnownName)) {
             lastKnownName = name;
+            dirty = true;
+        }
+    }
+
+    // --- Keys given while offline ---
+    public Map<String, Integer> getPendingKeys() {
+        return pendingKeys;
+    }
+
+    public void addPendingKeys(String crateName, int amount) {
+        pendingKeys.merge(id(crateName), amount, Integer::sum);
+        dirty = true;
+    }
+
+    public void clearPendingKeys() {
+        if (!pendingKeys.isEmpty()) {
+            pendingKeys.clear();
             dirty = true;
         }
     }

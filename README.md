@@ -17,12 +17,15 @@ A gacha crate plugin for Minecraft Survival servers (Spigot / Paper 1.20 – 1.2
   - **Instant**: no animation.
   Players can close a menu animation to skip it, and the reward is still given.
 - **Gacha-style reveals**: the best rarity gets a gold title, the totem animation and a fanfare, and the second best gets its own flashy title.
-- **Starter crates**: `/gacha setup` (or the button in the admin menu) creates ready-made Vote, Rare, Legendary and Event crates with balanced rewards.
+- **Starter crates**: `/gacha setup` (or the button in the admin menu) creates a ladder of 4 crates: **Vote → Rare → Epic → Legendary**. Each has its own loot, animation and particles, and lower crates can drop keys for the next tier.
 - **Hex colors**: use `&#RRGGBB` anywhere colors are allowed (crate names, lore, messages).
 - **Update checker**: tells the console and admins when a new version is released.
 - **Opening modes**: right-click a crate block with a key, or right-click anywhere while holding the key.
 - **Mass open**: sneak + right-click to open a whole stack of keys at once, with a summary in chat.
-- **Physical crates** with idle particle effects and **built-in holograms**: text above every crate plus a spinning reward item that shows a different prize every few seconds. No extra plugin needed. [DecentHolograms](https://www.spigotmc.org/resources/96927/) is still supported if you prefer it (`hologram.provider` in config.yml).
+- **Physical crates** with particle effects in 6 shapes (Helix, Halo, Orbit, Fountain, Pulse, Vortex) and a burst when a crate is opened.
+- **Holograms** through your hologram plugin: [DecentHolograms](https://www.spigotmc.org/resources/96927/), [FancyHolograms](https://modrinth.com/plugin/fancyholograms) 2.x, or any other plugin through console commands (`hologram.provider` in config.yml).
+- **Clickable green help** (`/gacha help`): click a command to type it, hover to see what it does. Only shows commands the player can use.
+- **Big-server friendly**: give keys to offline players (great for webstores like Tebex), an opening cooldown, rank perks through permissions, a win log file for support tickets, background saving, and cached leaderboards.
 - **Announcements** for rare wins, with a firework that doesn't hurt anyone.
 - **PlaceholderAPI** placeholders, and PlaceholderAPI placeholders also work inside reward commands.
 - **Player menu** (`/gacha`): browse crates, claim daily keys, open the shop, and see wins and leaderboards.
@@ -37,7 +40,7 @@ A gacha crate plugin for Minecraft Survival servers (Spigot / Paper 1.20 – 1.2
 
 1. Download the jar from the latest **Actions** run (Build GachaCrate Plugin → Artifacts) or a release.
 2. Put it in your server's `plugins` folder and restart.
-3. Optional: PlaceholderAPI (placeholders), Vault + an economy plugin (key shop), and DecentHolograms if you'd rather use it than the built-in holograms.
+3. Optional: PlaceholderAPI (placeholders), Vault + an economy plugin (key shop), and DecentHolograms or FancyHolograms (holograms).
 
 ## Quick start
 
@@ -78,7 +81,33 @@ A gacha crate plugin for Minecraft Survival servers (Spigot / Paper 1.20 – 1.2
 
 Aliases: `/gc`, `/crate`.
 
-Every crate also has its own permission, `gacha.user.open.<crate>`, which everyone has by default. Negate it (for example with LuckPerms) to lock a crate to certain ranks.
+## Permissions
+
+| Permission | Gives | Default |
+|---|---|---|
+| `gacha.*` | Everything | op |
+| `gacha.admin` | All admin commands | op |
+| `gacha.user` | All player features | everyone |
+| `gacha.bypass` | All bypasses below | op |
+| `gacha.user.open.<crate>` | Open one crate. Negate it to lock a crate to certain ranks. | everyone |
+| `gacha.bypass.cooldown` | Ignore `opening.cooldown-seconds` | op |
+| `gacha.bypass.timelimit` | Open time-limited crates at any time | op |
+| `gacha.daily.multiplier.<n>` | Get n times the daily free keys (e.g. `.2` for VIP) | — |
+| `gacha.massopen.<n>` | Open up to n keys at once with sneak + right-click | — |
+| `gacha.admin.update` | Hear about new versions on join | op |
+
+Example with LuckPerms, so VIPs get double daily keys and the Legendary crate is VIP-only:
+```
+/lp group vip permission set gacha.daily.multiplier.2 true
+/lp group default permission set gacha.user.open.legendary false
+/lp group vip permission set gacha.user.open.legendary true
+```
+
+Every command's own permission is listed in `plugin.yml`.
+
+## Offline keys (webstores)
+
+`/gacha givekey <player> <crate> <amount>` works when the player is offline. They get the keys, with a message, the next time they join. You can run it straight from Tebex, CraftingStore or any webstore.
 
 ## Daily keys and the shop
 
@@ -100,7 +129,12 @@ A reward's **weight** is how likely it is compared to the others. A reward with 
 | `%gachacrate_pity_text_<crate>%` | Ready-made line, e.g. "Pity: 12/50 for Mythic" |
 | `%gachacrate_opened_<crate>%` | Times opened |
 | `%gachacrate_opened_total%` | Total crates opened |
-| `%gachacrate_keys_<crate>%` | Keys in inventory |
+| `%gachacrate_keys_<crate>%` | Keys of one crate in inventory |
+| `%gachacrate_keys_total%` | All keys in inventory |
+| `%gachacrate_pending_keys%` | Keys waiting from offline gifts |
+| `%gachacrate_daily_ready%` | How many crates have daily keys ready |
+| `%gachacrate_last_win%` / `_last_win_rarity%` / `_last_win_crate%` | The player's latest win |
+| `%gachacrate_crate_<crate>_name%` | Crate display name (also `_rewards`, `_price`, `_daily`, `_pity`) |
 | `%gachacrate_daily_<crate>%` | `Ready` or `Claimed` |
 | `%gachacrate_rank%` | The player's leaderboard position |
 | `%gachacrate_top_<n>_name%` / `%gachacrate_top_<n>_value%` | Leaderboard, all crates (e.g. `top_1_name`) |

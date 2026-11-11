@@ -1,6 +1,7 @@
 package com.kazumiii.gachacrate.crates;
 
 import com.kazumiii.gachacrate.animations.AnimationType;
+import com.kazumiii.gachacrate.animations.ParticleStyle;
 import com.kazumiii.gachacrate.util.Text;
 import org.bukkit.Particle;
 
@@ -34,6 +35,7 @@ public class Crate {
     private AnimationType animationType = AnimationType.REEL;
     private OpeningMode openingMode = OpeningMode.PHYSICAL_BLOCKS;
     private Particle idleParticle;
+    private ParticleStyle particleStyle = ParticleStyle.HELIX;
 
     public Crate(String name) {
         this.name = name;
@@ -130,6 +132,8 @@ public class Crate {
     public void setAnimationType(AnimationType animationType) { this.animationType = animationType; }
     public void setOpeningMode(OpeningMode openingMode) { this.openingMode = openingMode; }
     public void setIdleParticle(Particle idleParticle) { this.idleParticle = idleParticle; }
+    public ParticleStyle getParticleStyle() { return particleStyle; }
+    public void setParticleStyle(ParticleStyle particleStyle) { this.particleStyle = particleStyle == null ? ParticleStyle.HELIX : particleStyle; }
 
     public String getOpenPermission() {
         return "gacha.user.open." + getId();
