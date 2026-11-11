@@ -1,184 +1,224 @@
-// ========================================================================
-// File: CrateAnimationMenu.java
-// Location: /src/main/java/com/kazumiii/gachacrate/guis/CrateAnimationMenu.java
-// ========================================================================
 package com.kazumiii.gachacrate.guis;
 
-import com.kazumiii.gachacrate.GachaCrate;
-import com.kazumiii.gachacrate.animations.AnimationType;
 import com.kazumiii.gachacrate.crates.Crate;
 import com.kazumiii.gachacrate.crates.CrateOpener;
+import com.kazumiii.gachacrate.crates.Rarity;
 import com.kazumiii.gachacrate.crates.Reward;
-import com.kazumiii.gachacrate.crates.RewardType;
-import org.bukkit.Bukkit;
+import com.kazumiii.gachacrate.util.Items;
+import com.kazumiii.gachacrate.util.Text;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 
+/**
+ * The opening animation. The reward was already picked; the animation just lands on it.
+ * <p>
+ * Closing the menu skips to the end (if allowed in config). Logging out also gives the reward.
+ */
 public class CrateAnimationMenu extends Menu {
 
-    private final Crate crate;
-    private final List<ItemStack> animationReel = new ArrayList<>();
-    private final Random random = new Random();
+    private static final int[] ROULETTE_PATH = {0, 1, 2, 3, 4, 5, 6, 7, 8, 17, 26, 35, 44, 43, 42, 41, 40, 39, 38, 37, 36, 27, 18, 9};
+    private static final Material[] LIGHTS = {
+            Material.YELLOW_STAINED_GLASS_PANE, Material.ORANGE_STAINED_GLASS_PANE, Material.RED_STAINED_GLASS_PANE,
+            Material.MAGENTA_STAINED_GLASS_PANE, Material.LIGHT_BLUE_STAINED_GLASS_PANE, Material.LIME_STAINED_GLASS_PANE
+    };
 
-    public CrateAnimationMenu(Player player, Crate crate) {
+    private final Crate crate;
+    private final CrateOpener.Roll roll;
+    private final List<Reward> pool;
+    private BukkitTask task;
+    private boolean finished;
+    private boolean revealed;
+    private boolean closed;
+
+    public CrateAnimationMenu(Player player, Crate crate, CrateOpener.Roll roll) {
         super(player);
         this.crate = crate;
-        populateAnimationReel();
+        this.roll = roll;
+        this.pool = crate.getValidRewards();
     }
 
-    private void populateAnimationReel() {
-        if (crate.getRewards().isEmpty()) return;
-        for (Reward reward : crate.getRewards()) {
-            ItemStack displayItem;
-            if (reward.getType() == RewardType.ITEM) {
-                displayItem = reward.getItem();
-            } else {
-                displayItem = reward.getPreviewItem() != null ? reward.getPreviewItem() : new ItemStack(Material.COMMAND_BLOCK);
-            }
-            int weight = (int) (100 / (reward.getChance() + 1));
-            for (int i = 0; i < Math.max(1, weight); i++) {
-                animationReel.add(displayItem);
-            }
+    @Override
+    protected String getTitle() {
+        String title = "§8Opening " + Text.strip(crate.getDisplayName()) + "...";
+        return title.length() > 32 ? title.substring(0, 32) : title;
+    }
+
+    @Override
+    protected int getSize() {
+        switch (crate.getAnimationType()) {
+            case ROULETTE:
+                return 45;
+            case REEL:
+            default:
+                return 27;
         }
-        Collections.shuffle(animationReel);
+    }
+
+    @Override
+    protected void draw() {
+        fill(Material.GRAY_STAINED_GLASS_PANE);
     }
 
     @Override
     public void open() {
-        // Use a 5-row inventory for the new animations
-        inventory = Bukkit.createInventory(this, 45, "§eOpening " + crate.getName() + "...");
-        
+        super.open();
         switch (crate.getAnimationType()) {
             case ROULETTE:
-                runRouletteAnimation();
+                startRoulette();
                 break;
             case REEL:
             default:
-                runReelAnimation();
+                startReel();
                 break;
         }
-        player.openInventory(inventory);
     }
 
-    private void runReelAnimation() {
-        if (animationReel.isEmpty()) { player.closeInventory(); return; }
-        
-        ItemStack placeholder = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta meta = placeholder.getItemMeta();
-        meta.setDisplayName(" ");
-        placeholder.setItemMeta(meta);
-        for(int i = 0; i < inventory.getSize(); i++) inventory.setItem(i, placeholder);
+    /** A random reward icon, weighted by chance (so common items show up more often). */
+    private ItemStack randomIcon() {
+        return CrateOpener.weightedPick(pool).getDisplayItem();
+    }
 
-        ItemStack pointer = new ItemStack(Material.BEACON);
-        ItemMeta pointerMeta = pointer.getItemMeta();
-        pointerMeta.setDisplayName("§e▲");
-        pointer.setItemMeta(pointerMeta);
-        inventory.setItem(4, pointer);
-        inventory.setItem(40, pointer);
+    // ------------------------------------------------------------------
+    // Reel: a row of items scrolls left and slows down; the winner stops under the arrows.
+    // ------------------------------------------------------------------
 
-        new BukkitRunnable() {
-            int ticks = 0;
-            final int duration = 100;
-            final int reel1StopTime = 40, reel2StopTime = 60, reel3StopTime = 80;
+    private void startReel() {
+        ItemStack arrow = Items.of(Material.HOPPER).name("&e▼").build();
+        inventory.setItem(4, arrow);
+        inventory.setItem(22, Items.of(Material.HOPPER).name("&e▲").build());
+
+        final int steps = 32;
+        final List<ItemStack> reel = new ArrayList<>();
+        for (int i = 0; i < steps + 8; i++) reel.add(randomIcon());
+        reel.set(steps - 1 + 4, roll.reward.getDisplayItem()); // Lands in the middle slot (13) on the last step.
+
+        task = new BukkitRunnable() {
+            int step = 0;
+            int wait = 0;
 
             @Override
             public void run() {
-                if (ticks >= duration) {
-                    this.cancel();
-                    revealAndFinalize();
+                if (!player.isOnline()) {
+                    finish();
                     return;
                 }
-                if (ticks < reel1StopTime) spinReel(12);
-                if (ticks < reel2StopTime) spinReel(13);
-                if (ticks < reel3StopTime) spinReel(14);
-                
-                if (ticks == reel1StopTime || ticks == reel2StopTime || ticks == reel3StopTime) {
-                    player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 1.2f);
-                }
-                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 0.5f, 1.5f);
-                ticks++;
-            }
-        }.runTaskTimer(GachaCrate.getInstance(), 0, 1L);
-    }
-    
-    private void spinReel(int centerSlot) {
-        inventory.setItem(centerSlot - 9, animationReel.get(random.nextInt(animationReel.size())));
-        inventory.setItem(centerSlot, animationReel.get(random.nextInt(animationReel.size())));
-        inventory.setItem(centerSlot + 9, animationReel.get(random.nextInt(animationReel.size())));
-    }
-
-    private void runRouletteAnimation() {
-        if (animationReel.isEmpty()) { player.closeInventory(); return; }
-        final int[] path = {0, 1, 2, 3, 4, 5, 6, 7, 8, 17, 26, 35, 44, 43, 42, 41, 40, 39, 38, 37, 36, 27, 18, 9};
-        final Material[] panes = {Material.YELLOW_STAINED_GLASS_PANE, Material.ORANGE_STAINED_GLASS_PANE, Material.RED_STAINED_GLASS_PANE};
-        new BukkitRunnable() {
-            int ticks = 0;
-            final int duration = 100;
-            @Override
-            public void run() {
-                if (ticks >= duration) {
-                    this.cancel();
-                    revealAndFinalize();
+                if (wait > 0) {
+                    wait--;
                     return;
                 }
-                for (int i = 0; i < path.length; i++) {
-                    inventory.setItem(path[(ticks + i) % path.length], new ItemStack(panes[(ticks + i) % panes.length]));
+                for (int i = 0; i < 9; i++) inventory.setItem(9 + i, reel.get(step + i));
+                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 0.6f, 1.6f);
+
+                if (step >= steps - 1) {
+                    cancel();
+                    reveal(13);
+                    return;
                 }
-                if (ticks % 10 == 0) {
-                    inventory.setItem(22, animationReel.get(random.nextInt(animationReel.size())));
-                }
-                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 0.5f, 0.5f + ((float) ticks / duration));
-                ticks++;
+                step++;
+                // Starts fast, ends slow.
+                double progress = step / (double) steps;
+                wait = (int) Math.round(progress * progress * 6);
             }
-        }.runTaskTimer(GachaCrate.getInstance(), 0, 1L);
+        }.runTaskTimer(plugin(), 1L, 1L);
     }
 
-    private void revealAndFinalize() {
-        CrateOpener opener = GachaCrate.getInstance().getCrateOpener();
-        Reward finalReward = opener.rollForReward(player, crate);
-        if (finalReward == null) {
-            player.closeInventory();
-            return;
-        }
-        
-        ItemStack placeholder = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
-        ItemMeta meta = placeholder.getItemMeta();
-        meta.setDisplayName(" ");
-        placeholder.setItemMeta(meta);
-        for (int i = 0; i < inventory.getSize(); i++) inventory.setItem(i, placeholder);
+    // ------------------------------------------------------------------
+    // Roulette: lights run around the border while the middle item changes.
+    // ------------------------------------------------------------------
 
-        ItemStack displayItem;
-        if (finalReward.getType() == RewardType.ITEM) {
-            displayItem = finalReward.getItem();
-        } else {
-            displayItem = finalReward.getPreviewItem() != null ? finalReward.getPreviewItem() : new ItemStack(Material.COMMAND_BLOCK);
-        }
-        
-        int finalSlot = 22; // Center slot for 5 rows
-        inventory.setItem(finalSlot, displayItem);
+    private void startRoulette() {
+        final int duration = 80;
+        task = new BukkitRunnable() {
+            int tick = 0;
+            int nextChange = 0;
 
-        opener.finalizeReward(player, crate, finalReward);
-        
-        new BukkitRunnable() {
             @Override
             public void run() {
-                if (player.isOnline()) player.closeInventory();
+                if (!player.isOnline()) {
+                    finish();
+                    return;
+                }
+                if (tick >= duration) {
+                    cancel();
+                    reveal(22);
+                    return;
+                }
+                for (int i = 0; i < ROULETTE_PATH.length; i++) {
+                    inventory.setItem(ROULETTE_PATH[i], Items.filler(LIGHTS[(tick + i) % LIGHTS.length]));
+                }
+                if (tick >= nextChange) {
+                    inventory.setItem(22, randomIcon());
+                    float pitch = 0.5f + (float) tick / duration;
+                    player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 0.5f, pitch);
+                    nextChange = tick + 1 + tick / 10; // Slows down over time.
+                }
+                tick++;
             }
-        }.runTaskLater(GachaCrate.getInstance(), 40L);
+        }.runTaskTimer(plugin(), 1L, 1L);
+    }
+
+    // ------------------------------------------------------------------
+    // End
+    // ------------------------------------------------------------------
+
+    private void reveal(int slot) {
+        revealed = true;
+        Material frame = paneFor(roll.reward.getRarity());
+        for (int i = 0; i < inventory.getSize(); i++) inventory.setItem(i, Items.filler(frame));
+        inventory.setItem(slot, Items.copy(roll.reward.getDisplayItem())
+                .addLore(List.of("", roll.reward.getRarity().getDisplayName())).glow(true).build());
+
+        finish();
+
+        long delay = Math.max(0, plugin().getConfig().getLong("opening.close-delay-ticks", 40));
+        plugin().getServer().getScheduler().runTaskLater(plugin(), () -> {
+            if (player.isOnline() && !closed) {
+                player.closeInventory();
+            }
+        }, delay);
+    }
+
+    /** Ends the animation and hands out the reward. Safe to call more than once. */
+    public void finish() {
+        if (finished) return;
+        finished = true;
+        if (task != null) task.cancel();
+        plugin().getCrateOpener().animationDone(player, crate, roll);
     }
 
     @Override
-    public void handleMenu(InventoryClickEvent event) {
-        event.setCancelled(true);
+    protected void onClose() {
+        closed = true;
+        if (finished || revealed) return;
+        if (plugin().getConfig().getBoolean("opening.allow-skip", true)) {
+            finish(); // Skipped: give the reward now.
+        }
+        // Otherwise the animation keeps running in the background and gives the reward at the end.
     }
-                            }
+
+    private static Material paneFor(Rarity rarity) {
+        switch (rarity.getColor()) {
+            case AQUA: return Material.LIGHT_BLUE_STAINED_GLASS_PANE;
+            case BLUE: case DARK_BLUE: return Material.BLUE_STAINED_GLASS_PANE;
+            case DARK_AQUA: return Material.CYAN_STAINED_GLASS_PANE;
+            case DARK_PURPLE: return Material.PURPLE_STAINED_GLASS_PANE;
+            case LIGHT_PURPLE: return Material.MAGENTA_STAINED_GLASS_PANE;
+            case GOLD: return Material.ORANGE_STAINED_GLASS_PANE;
+            case YELLOW: return Material.YELLOW_STAINED_GLASS_PANE;
+            case GREEN: return Material.LIME_STAINED_GLASS_PANE;
+            case DARK_GREEN: return Material.GREEN_STAINED_GLASS_PANE;
+            case RED: case DARK_RED: return Material.RED_STAINED_GLASS_PANE;
+            case BLACK: case DARK_GRAY: return Material.BLACK_STAINED_GLASS_PANE;
+            case GRAY: return Material.GRAY_STAINED_GLASS_PANE;
+            default: return Material.WHITE_STAINED_GLASS_PANE;
+        }
+    }
+
+}

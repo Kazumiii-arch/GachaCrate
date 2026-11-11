@@ -1,22 +1,17 @@
-// ========================================================================
-// File: CrateSettingsMenu.java
-// Location: /src/main/java/com/kazumiii/gachacrate/guis/CrateSettingsMenu.java
-// ========================================================================
 package com.kazumiii.gachacrate.guis;
 
 import com.kazumiii.gachacrate.animations.AnimationSelectorMenu;
 import com.kazumiii.gachacrate.animations.IdleParticleMenu;
+import com.kazumiii.gachacrate.conversation.ChatPrompt;
 import com.kazumiii.gachacrate.crates.Crate;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import com.kazumiii.gachacrate.util.Items;
+import com.kazumiii.gachacrate.util.Text;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.Arrays;
-
+/**
+ * All settings of one crate.
+ */
 public class CrateSettingsMenu extends Menu {
 
     private final Crate crate;
@@ -27,100 +22,109 @@ public class CrateSettingsMenu extends Menu {
     }
 
     @Override
-    public void open() {
-        inventory = Bukkit.createInventory(this, 36, "§8Settings: " + crate.getName());
-
-        // --- Decorative Panes ---
-        ItemStack placeholder = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta meta = placeholder.getItemMeta();
-        meta.setDisplayName(" ");
-        placeholder.setItemMeta(meta);
-        for (int i = 0; i < inventory.getSize(); i++) {
-            inventory.setItem(i, placeholder);
-        }
-
-        // --- Control Buttons ---
-        ItemStack viewRewards = new ItemStack(Material.CHEST);
-        ItemMeta viewMeta = viewRewards.getItemMeta();
-        viewMeta.setDisplayName(ChatColor.AQUA + "View & Edit Rewards");
-        viewMeta.setLore(Arrays.asList(ChatColor.GRAY + "Add, remove, or edit the", ChatColor.GRAY + "rewards inside this crate."));
-        viewRewards.setItemMeta(viewMeta);
-
-        ItemStack pitySettings = new ItemStack(Material.DIAMOND);
-        ItemMeta pityMeta = pitySettings.getItemMeta();
-        pityMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "Pity System Settings");
-        pityMeta.setLore(Arrays.asList(ChatColor.GRAY + "Configure the guaranteed", ChatColor.GRAY + "reward system for this crate."));
-        pitySettings.setItemMeta(pityMeta);
-
-        ItemStack timeLimitSettings = new ItemStack(Material.CLOCK);
-        ItemMeta timeMeta = timeLimitSettings.getItemMeta();
-        timeMeta.setDisplayName(ChatColor.GOLD + "Time-Limit Settings");
-        timeMeta.setLore(Arrays.asList(ChatColor.GRAY + "Set a start and end date", ChatColor.GRAY + "for when this crate can be opened."));
-        timeLimitSettings.setItemMeta(timeMeta);
-
-        ItemStack animationSettings = new ItemStack(Material.JUKEBOX);
-        ItemMeta animMeta = animationSettings.getItemMeta();
-        animMeta.setDisplayName(ChatColor.GREEN + "Animation Settings");
-        animMeta.setLore(Arrays.asList(ChatColor.GRAY + "Change the visual animation", ChatColor.GRAY + "for opening this crate."));
-        animationSettings.setItemMeta(animMeta);
-        
-        ItemStack openingModeButton = new ItemStack(Material.ENDER_EYE);
-        ItemMeta openMeta = openingModeButton.getItemMeta();
-        openMeta.setDisplayName(ChatColor.YELLOW + "Opening Mode Settings");
-        openMeta.setLore(Arrays.asList(ChatColor.GRAY + "Choose how players open this crate."));
-        openingModeButton.setItemMeta(openMeta);
-
-        ItemStack particleButton = new ItemStack(Material.GLOWSTONE_DUST);
-        ItemMeta particleMeta = particleButton.getItemMeta();
-        particleMeta.setDisplayName(ChatColor.GOLD + "Idle Particle Effects");
-        particleMeta.setLore(Arrays.asList(ChatColor.GRAY + "Set a constant particle effect", ChatColor.GRAY + "to display on this crate block."));
-        particleButton.setItemMeta(particleMeta);
-
-        ItemStack backButton = new ItemStack(Material.ARROW);
-        ItemMeta backMeta = backButton.getItemMeta();
-        backMeta.setDisplayName(ChatColor.YELLOW + "« Back to Crate List");
-        backButton.setItemMeta(backMeta);
-
-        inventory.setItem(10, viewRewards);
-        inventory.setItem(11, pitySettings);
-        inventory.setItem(12, timeLimitSettings);
-        inventory.setItem(14, animationSettings);
-        inventory.setItem(15, openingModeButton);
-        inventory.setItem(16, particleButton);
-        inventory.setItem(27, backButton);
-
-        player.openInventory(inventory);
+    protected String getTitle() {
+        return "§8Settings: " + crate.getName();
     }
 
     @Override
-    public void handleMenu(InventoryClickEvent event) {
-        event.setCancelled(true);
-        if (event.getCurrentItem() == null || event.getCurrentItem().getType() == Material.AIR) return;
-        
-        switch (event.getCurrentItem().getType()) {
-            case CHEST:
-                new CrateEditorMenu(player, crate).open();
-                break;
-            case DIAMOND:
-                new PityEditorMenu(player, crate).open();
-                break;
-            case CLOCK:
-                new TimeLimitEditorMenu(player, crate).open();
-                break;
-            case JUKEBOX:
-                new AnimationSelectorMenu(player, crate).open();
-                break;
-            case ENDER_EYE:
-                new OpeningModeMenu(player, crate).open();
-                break;
-            case GLOWSTONE_DUST:
-                new IdleParticleMenu(player, crate).open();
-                break;
-            case ARROW:
-                new MainMenu(player).open();
-                break;
-            default:
-                break;
-        }
+    protected int getSize() {
+        return 45;
+    }
+
+    @Override
+    protected void draw() {
+        fill(Material.GRAY_STAINED_GLASS_PANE);
+
+        item(4, Items.of(Material.CHEST).name(crate.getDisplayName())
+                .lore("&7Id: &f" + crate.getName(), "&7Rewards: &f" + crate.getRewards().size()).build());
+
+        button(10, Items.of(Material.CHEST).name("&bView & Edit Rewards")
+                .lore("&7Add, remove or edit the", "&7rewards inside this crate.").build(),
+                e -> new CrateEditorMenu(player, crate).open());
+
+        button(11, Items.of(Material.DIAMOND).name("&dPity System")
+                .lore("&7Status: " + (crate.isPityEnabled() ? "&aON" : "&cOFF"),
+                        "&7Guarantees a good reward", "&7after many unlucky opens.").build(),
+                e -> new PityEditorMenu(player, crate).open());
+
+        button(12, Items.of(Material.CLOCK).name("&6Time Limit")
+                .lore("&7Status: " + (crate.isTimeLimitEnabled() ? "&aON" : "&cOFF"),
+                        "&7Only allow opening between", "&7two dates.").build(),
+                e -> new TimeLimitEditorMenu(player, crate).open());
+
+        button(14, Items.of(Material.JUKEBOX).name("&aAnimation")
+                .lore("&7Current: &f" + crate.getAnimationType().getDisplayName()).build(),
+                e -> new AnimationSelectorMenu(player, crate).open());
+
+        button(15, Items.of(Material.ENDER_EYE).name("&eOpening Mode")
+                .lore("&7Current: &f" + crate.getOpeningMode().getDisplayName()).build(),
+                e -> new OpeningModeMenu(player, crate).open());
+
+        button(16, Items.of(Material.GLOWSTONE_DUST).name("&6Idle Particles")
+                .lore("&7Current: &f" + (crate.getIdleParticle() == null ? "None" : crate.getIdleParticle().name()),
+                        "&7Effect shown around crate blocks.").build(),
+                e -> new IdleParticleMenu(player, crate).open());
+
+        button(20, Items.of(Material.NAME_TAG).name("&bDisplay Name")
+                .lore("&7Current: " + crate.getDisplayName(), "", "&7The name players see.",
+                        "&7Supports & color codes.", "", "&e► Click to change", "&e► Right-click to reset").build(),
+                e -> {
+                    if (e.isRightClick()) {
+                        crate.setDisplayName(null);
+                        saveAndRefreshHolograms();
+                        refresh();
+                        return;
+                    }
+                    ChatPrompt.ask(player, "&eType the new display name &7(e.g. &6&lLegendary Crate&7)", input -> {
+                        if (input.length() > 64) return "That name is too long (max 64 characters).";
+                        crate.setDisplayName(input);
+                        saveAndRefreshHolograms();
+                        Text.send(player, "&aDisplay name set to " + crate.getDisplayName());
+                        return null;
+                    }, this::open);
+                });
+
+        button(22, Items.of(Material.TRIPWIRE_HOOK).name("&eGet Keys")
+                .lore("&7Click: 1 key", "&7Shift-click: 16 keys").build(), e -> {
+            if (!player.hasPermission("gacha.admin.givekey")) {
+                Text.send(player, "&cYou don't have permission to give keys.");
+                return;
+            }
+            int amount = e.isShiftClick() ? 16 : 1;
+            plugin().getKeyManager().giveKeys(player, crate, amount);
+            Text.send(player, "&aYou got " + amount + "x " + crate.getDisplayName() + " &akey.");
+        });
+
+        button(24, Items.of(Material.ENDER_CHEST).name("&aTest Open")
+                .lore("&7Opens the crate for free", "&7(no key used).").build(), e -> {
+            if (!player.hasPermission("gacha.admin.open")) {
+                Text.send(player, "&cYou don't have permission to test-open crates.");
+                return;
+            }
+            player.closeInventory();
+            plugin().getCrateOpener().openFree(player, crate, 1);
+        });
+
+        button(36, Items.of(Material.ARROW).name("&e« Back to Crate List").build(),
+                e -> new MainMenu(player).open());
+
+        button(44, Items.of(Material.LAVA_BUCKET).name("&c&lDelete Crate")
+                .lore("&7Deletes this crate, its rewards", "&7and its crate blocks.", "", "&cThis can't be undone!").build(),
+                e -> {
+                    if (!player.hasPermission("gacha.admin.delete")) {
+                        Text.send(player, "&cYou don't have permission to delete crates.");
+                        return;
+                    }
+                    new ConfirmMenu(player, "Delete " + crate.getName() + "?", () -> {
+                        plugin().getCrateManager().deleteCrate(crate.getName());
+                        Text.send(player, "&aCrate &e" + crate.getName() + " &adeleted.");
+                        new MainMenu(player).open();
+                    }, this::open).open();
+                });
+    }
+
+    private void saveAndRefreshHolograms() {
+        plugin().getCrateManager().saveCrates();
+        plugin().getHologramManager().refresh(crate);
     }
 }

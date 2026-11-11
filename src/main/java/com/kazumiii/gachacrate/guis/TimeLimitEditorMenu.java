@@ -1,25 +1,19 @@
-// ========================================================================
-// File: TimeLimitEditorMenu.java
-// Location: /src/main/java/com/kazumiii/gachacrate/guis/TimeLimitEditorMenu.java
-// ========================================================================
 package com.kazumiii.gachacrate.guis;
 
-import com.kazumiii.gachacrate.GachaCrate;
-import com.kazumiii.gachacrate.conversation.DatePrompt;
+import com.kazumiii.gachacrate.conversation.ChatPrompt;
 import com.kazumiii.gachacrate.crates.Crate;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import com.kazumiii.gachacrate.util.Items;
+import com.kazumiii.gachacrate.util.Text;
 import org.bukkit.Material;
-import org.bukkit.conversations.Conversation;
-import org.bukkit.conversations.ConversationFactory;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.time.LocalDate;
-import java.util.Arrays;
+import java.time.format.DateTimeParseException;
+import java.util.function.Consumer;
 
+/**
+ * Limit a crate to a date range (e.g. a holiday event crate). Both dates are included.
+ */
 public class TimeLimitEditorMenu extends Menu {
 
     private final Crate crate;
@@ -30,86 +24,69 @@ public class TimeLimitEditorMenu extends Menu {
     }
 
     @Override
-    public void open() {
-        inventory = Bukkit.createInventory(this, 27, "§8Time-Limit Settings: " + crate.getName());
-        updateItems();
-        player.openInventory(inventory);
-    }
-
-    /**
-     * Refreshes the items in the GUI to show the latest settings.
-     */
-    private void updateItems() {
-        // --- Enable/Disable Button ---
-        boolean enabled = crate.isTimeLimitEnabled();
-        ItemStack toggleButton = new ItemStack(enabled ? Material.LIME_DYE : Material.GRAY_DYE);
-        ItemMeta toggleMeta = toggleButton.getItemMeta();
-        toggleMeta.setDisplayName(ChatColor.GOLD + "Time Limit: " + (enabled ? ChatColor.GREEN + "ENABLED" : ChatColor.RED + "DISABLED"));
-        toggleMeta.setLore(Arrays.asList(ChatColor.YELLOW + "► Click to toggle."));
-        toggleButton.setItemMeta(toggleMeta);
-
-        // --- Start Date Button ---
-        ItemStack startDateButton = new ItemStack(Material.OAK_SIGN);
-        ItemMeta startMeta = startDateButton.getItemMeta();
-        startMeta.setDisplayName(ChatColor.AQUA + "Set Start Date");
-        String startDate = crate.getStartDate() != null ? crate.getStartDate().toString() : "Not Set";
-        startMeta.setLore(Arrays.asList("§7Current: §f" + startDate, "", ChatColor.YELLOW + "► Click to change."));
-        startDateButton.setItemMeta(startMeta);
-
-        // --- End Date Button ---
-        ItemStack endDateButton = new ItemStack(Material.DARK_OAK_SIGN);
-        ItemMeta endMeta = endDateButton.getItemMeta();
-        endMeta.setDisplayName(ChatColor.AQUA + "Set End Date");
-        String endDate = crate.getEndDate() != null ? crate.getEndDate().toString() : "Not Set";
-        endMeta.setLore(Arrays.asList("§7Current: §f" + endDate, "", ChatColor.YELLOW + "► Click to change."));
-        endDateButton.setItemMeta(endMeta);
-
-        // --- Back Button ---
-        ItemStack backButton = new ItemStack(Material.ARROW);
-        ItemMeta backMeta = backButton.getItemMeta();
-        backMeta.setDisplayName(ChatColor.RED + "« Back to Settings");
-        backButton.setItemMeta(backMeta);
-
-        inventory.setItem(11, toggleButton);
-        inventory.setItem(13, startDateButton);
-        inventory.setItem(15, endDateButton);
-        inventory.setItem(18, backButton);
+    protected String getTitle() {
+        return "§8Time Limit: " + crate.getName();
     }
 
     @Override
-    public void handleMenu(InventoryClickEvent event) {
-        event.setCancelled(true);
-        if (event.getCurrentItem() == null || event.getCurrentItem().getType() == Material.AIR) return;
-
-        ConversationFactory cf = new ConversationFactory(GachaCrate.getInstance());
-
-        switch (event.getCurrentItem().getType()) {
-            case LIME_DYE:
-            case GRAY_DYE:
-                crate.setTimeLimitEnabled(!crate.isTimeLimitEnabled());
-                // Set default dates if enabling for the first time
-                if (crate.isTimeLimitEnabled() && crate.getStartDate() == null) {
-                    crate.setStartDate(LocalDate.now());
-                    crate.setEndDate(LocalDate.now().plusDays(7));
-                }
-                GachaCrate.getInstance().getCrateManager().saveCrates();
-                updateItems();
-                break;
-            case OAK_SIGN:
-                player.closeInventory();
-                Conversation startConvo = cf.withFirstPrompt(new DatePrompt("start-date", crate, this)).withLocalEcho(false).buildConversation(player);
-                startConvo.begin();
-                break;
-            case DARK_OAK_SIGN:
-                player.closeInventory();
-                Conversation endConvo = cf.withFirstPrompt(new DatePrompt("end-date", crate, this)).withLocalEcho(false).buildConversation(player);
-                endConvo.begin();
-                break;
-            case ARROW:
-                new CrateSettingsMenu(player, crate).open();
-                break;
-            default:
-                break;
-        }
+    protected int getSize() {
+        return 27;
     }
-        }
+
+    @Override
+    protected void draw() {
+        fill(Material.GRAY_STAINED_GLASS_PANE);
+        boolean enabled = crate.isTimeLimitEnabled();
+        boolean openNow = crate.isAvailable(LocalDate.now());
+
+        item(4, Items.of(Material.BOOK).name("&6Time Limit")
+                .lore("&7Today: &f" + LocalDate.now(),
+                        "&7Can be opened now: " + (openNow ? "&aYes" : "&cNo")).build());
+
+        button(11, Items.of(enabled ? Material.LIME_DYE : Material.GRAY_DYE)
+                .name("&6Time Limit: " + (enabled ? "&aON" : "&cOFF")).lore("&e► Click to toggle").build(), e -> {
+            crate.setTimeLimitEnabled(!crate.isTimeLimitEnabled());
+            if (crate.isTimeLimitEnabled() && crate.getStartDate() == null) crate.setStartDate(LocalDate.now());
+            if (crate.isTimeLimitEnabled() && crate.getEndDate() == null) crate.setEndDate(LocalDate.now().plusDays(7));
+            save();
+            refresh();
+        });
+
+        button(13, Items.of(Material.OAK_SIGN).name("&bStart Date: &f" + orNone(crate.getStartDate()))
+                .lore("&e► Click to change").build(),
+                e -> askDate("start", crate::setStartDate));
+
+        button(15, Items.of(Material.DARK_OAK_SIGN).name("&bEnd Date: &f" + orNone(crate.getEndDate()))
+                .lore("&7The crate can still be opened", "&7on this day.", "", "&e► Click to change").build(),
+                e -> askDate("end", crate::setEndDate));
+
+        button(18, Items.of(Material.ARROW).name("&e« Back to Settings").build(),
+                e -> new CrateSettingsMenu(player, crate).open());
+    }
+
+    private static String orNone(LocalDate date) {
+        return date == null ? "Not set" : date.toString();
+    }
+
+    private void askDate(String which, Consumer<LocalDate> setter) {
+        ChatPrompt.ask(player, "&eType the " + which + " date as &fYYYY-MM-DD &7(e.g. " + LocalDate.now().plusDays(7) + ")", input -> {
+            LocalDate date;
+            try {
+                date = LocalDate.parse(input);
+            } catch (DateTimeParseException ex) {
+                return "Invalid date. Use YYYY-MM-DD, e.g. 2026-12-25.";
+            }
+            setter.accept(date);
+            if (crate.getStartDate() != null && crate.getEndDate() != null && crate.getEndDate().isBefore(crate.getStartDate())) {
+                Text.send(player, "&eHeads up: the end date is before the start date, so the crate can't be opened.");
+            }
+            save();
+            Text.send(player, "&aDate updated.");
+            return null;
+        }, this::open);
+    }
+
+    private void save() {
+        plugin().getCrateManager().saveCrates();
+    }
+}

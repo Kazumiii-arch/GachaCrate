@@ -1,21 +1,20 @@
 package com.kazumiii.gachacrate.animations;
 
-import com.kazumiii.gachacrate.GachaCrate;
 import com.kazumiii.gachacrate.crates.Crate;
 import com.kazumiii.gachacrate.guis.CrateSettingsMenu;
 import com.kazumiii.gachacrate.guis.Menu;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import com.kazumiii.gachacrate.util.Items;
+import com.kazumiii.gachacrate.util.Text;
 import org.bukkit.Material;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.ItemFlag;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
+/**
+ * Pick the opening animation for a crate.
+ */
 public class AnimationSelectorMenu extends Menu {
 
     private final Crate crate;
@@ -26,55 +25,38 @@ public class AnimationSelectorMenu extends Menu {
     }
 
     @Override
-    public void open() {
-        inventory = Bukkit.createInventory(this, 27, "§8Select Animation Style");
-
-        for (AnimationType type : AnimationType.values()) {
-            ItemStack item = new ItemStack(Material.PAPER);
-            ItemMeta meta = item.getItemMeta();
-            meta.setDisplayName(ChatColor.AQUA + type.getDisplayName());
-            
-            
-            if (crate.getAnimationType() == type) {
-                meta.addEnchant(Enchantment.LUCK, 1, false);
-                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-                meta.setLore(Collections.singletonList(ChatColor.GREEN + "Currently Selected"));
-            } else {
-                meta.setLore(Collections.singletonList(ChatColor.YELLOW + "► Click to select"));
-            }
-            item.setItemMeta(meta);
-            inventory.addItem(item);
-        }
-
-        ItemStack backButton = new ItemStack(Material.ARROW);
-        ItemMeta backMeta = backButton.getItemMeta();
-        backMeta.setDisplayName(ChatColor.RED + "« Back to Settings");
-        backButton.setItemMeta(backMeta);
-        inventory.setItem(18, backButton);
-
-        player.openInventory(inventory);
+    protected String getTitle() {
+        return "§8Animation: " + crate.getName();
     }
 
     @Override
-    public void handleMenu(InventoryClickEvent event) {
-        event.setCancelled(true);
-        if (event.getCurrentItem() == null || event.getCurrentItem().getType() == Material.AIR) return;
+    protected int getSize() {
+        return 27;
+    }
 
-        if (event.getCurrentItem().getType() == Material.ARROW) {
-            new CrateSettingsMenu(player, crate).open();
-            return;
+    @Override
+    protected void draw() {
+        fill(Material.GRAY_STAINED_GLASS_PANE);
+        AnimationType[] types = AnimationType.values();
+        int[] slots = {11, 13, 15};
+        for (int i = 0; i < types.length && i < slots.length; i++) {
+            AnimationType type = types[i];
+            boolean selected = crate.getAnimationType() == type;
+            List<String> lore = new ArrayList<>();
+            for (String line : type.getDescription()) lore.add("&7" + line);
+            lore.add("");
+            lore.add(selected ? "&a✔ Selected" : "&e► Click to select");
+            button(slots[i], Items.of(type.getIcon()).name((selected ? "&a" : "&b") + type.getDisplayName())
+                    .lore(lore).glow(selected).build(), e -> {
+                crate.setAnimationType(type);
+                plugin().getCrateManager().saveCrates();
+                Text.send(player, "&aAnimation set to " + type.getDisplayName() + ".");
+                refresh();
+            });
         }
-
-        try {
-            String displayName = ChatColor.stripColor(event.getCurrentItem().getItemMeta().getDisplayName());
-            AnimationType selectedType = AnimationType.valueOf(displayName.toUpperCase().replace(" ", "_"));
-            
-            crate.setAnimationType(selectedType);
-            GachaCrate.getInstance().getCrateManager().saveCrates();
-            player.sendMessage(ChatColor.GREEN + "Animation style set to " + selectedType.getDisplayName() + "!");
-            open();
-        } catch (Exception e) {
-            // Added the missing closing curly brace for the catch block
-        }
+        button(18, Items.of(Material.ARROW).name("&e« Back to Settings").build(),
+                e -> new CrateSettingsMenu(player, crate).open());
+        item(26, Items.of(Material.BOOK).name("&7Tip").lore(Arrays.asList(
+                "&7Use &fTest Open &7in the crate", "&7settings to see the animation.")).build());
     }
 }

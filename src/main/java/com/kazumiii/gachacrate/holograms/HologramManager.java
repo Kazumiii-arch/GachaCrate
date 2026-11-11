@@ -1,82 +1,117 @@
-// ========================================================================
-// File: HologramManager.java
-// Location: /src/main/java/com/kazumiii/gachacrate/holograms/HologramManager.java
-// ========================================================================
 package com.kazumiii.gachacrate.holograms;
 
 import com.kazumiii.gachacrate.GachaCrate;
 import com.kazumiii.gachacrate.crates.Crate;
-import eu.decentsoftware.holograms.api.DHAPI;
-import eu.decentsoftware.holograms.api.holograms.Hologram;
+import com.kazumiii.gachacrate.crates.PhysicalCrateManager;
 import org.bukkit.Location;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 
+/**
+ * Shows a hologram above every physical crate when DecentHolograms is installed.
+ * All DecentHolograms code lives in {@link DecentHologramsHook}, so the plugin still loads without it.
+ */
 public class HologramManager {
 
     private final GachaCrate plugin;
-    private boolean isHologramsEnabled = false;
+    private DecentHologramsHook hook;
 
     public HologramManager(GachaCrate plugin) {
         this.plugin = plugin;
-        // Check if DecentHolograms is installed and enabled on the server
         if (plugin.getServer().getPluginManager().getPlugin("DecentHolograms") != null) {
-            this.isHologramsEnabled = true;
-            plugin.getLogger().info("DecentHolograms found! Physical crate holograms enabled.");
+            try {
+                hook = new DecentHologramsHook();
+                plugin.getLogger().info("DecentHolograms found. Crate holograms enabled.");
+            } catch (Throwable t) {
+                hook = null;
+                plugin.getLogger().log(Level.WARNING, "DecentHolograms is installed but couldn't be used. Holograms disabled.", t);
+            }
         } else {
-            plugin.getLogger().warning("DecentHolograms not found. Physical crate holograms will be disabled.");
+            plugin.getLogger().info("DecentHolograms not found. Crate holograms are disabled.");
         }
     }
 
-    /**
-     * Creates a unique name for a hologram based on its block's location.
-     * This is used to easily find and delete it later.
-     */
-    private String getHologramName(Location loc) {
-        return "gachacrate-" + loc.getWorld().getName() + "-" + loc.getBlockX() + "-" + loc.getBlockY() + "-" + loc.getBlockZ();
+    public boolean isEnabled() {
+        return hook != null;
     }
 
-    public void createHologram(Location blockLocation, String crateName) {
-        if (!isHologramsEnabled) return;
+    private static String hologramName(String blockKey) {
+        return "gachacrate-" + blockKey.replace(';', '-').replaceAll("[^A-Za-z0-9_-]", "_");
+    }
 
-        // First, remove any existing hologram at this location to prevent duplicates.
-        removeHologram(blockLocation);
-
+    /** Creates (or replaces) the hologram for one crate block. Does nothing if the world isn't loaded. */
+    public void create(String blockKey, String crateName) {
+        if (hook == null) return;
         Crate crate = plugin.getCrateManager().getCrate(crateName);
-        if (crate == null) return;
-        
-        String hologramName = getHologramName(blockLocation);
-        // Position the hologram nicely above the block
-        Location hologramLocation = blockLocation.clone().add(0.5, 2.2, 0.5);
-        
-        List<String> lines = new ArrayList<>(Arrays.asList(
-            "&b&l" + crate.getName() + " Crate",
-            "&eLeft-Click to Preview",
-            "&aRight-Click with Key to Open"
-        ));
+        Location block = PhysicalCrateManager.toLocation(blockKey);
+        if (crate == null || block == null) return;
 
-        // If the crate has a pity system, add the dynamic placeholder line.
-        if (crate.isPityEnabled()) {
-            // The placeholder format is %<identifier>_<params>%
-            String placeholder = "%gachacrate_pity_text_" + crate.getName() + "%";
-            lines.add(placeholder);
+        double height = plugin.getConfig().getDouble("hologram.height", 2.2);
+        Location location = block.clone().add(0.5, height, 0.5);
+
+        List<String> lines = new ArrayList<>();
+        for (String line : plugin.getConfig().getStringList("hologram.lines")) {
+            lines.add(fill(line, crate));
+        }
+        String pityLine = plugin.getConfig().getString("hologram.pity-line", "");
+        if (crate.isPityEnabled() && pityLine != null && !pityLine.isEmpty()
+                && plugin.getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            lines.add(fill(pityLine, crate));
         }
 
-        // Use the DecentHolograms API to create the hologram.
-        DHAPI.createHologram(hologramName, hologramLocation, false, lines);
+        try {
+            hook.create(hologramName(blockKey), location, lines);
+        } catch (Throwable t) {
+            plugin.getLogger().log(Level.WARNING, "Could not create hologram for crate block " + blockKey, t);
+        }
     }
 
-    public void removeHologram(Location blockLocation) {
-        if (!isHologramsEnabled) return;
+    private static String fill(String line, Crate crate) {
+        return line.replace("{crate}", crate.getDisplayName()).replace("{id}", crate.getId());
+    }
 
-        String hologramName = getHologramName(blockLocation);
-        Hologram hologram = DHAPI.getHologram(hologramName);
+    public void remove(String blockKey) {
+        if (hook == null) return;
+        try {
+            hook.remove(hologramName(blockKey));
+        } catch (Throwable t) {
+            plugin.getLogger().log(Level.WARNING, "Could not remove hologram for crate block " + blockKey, t);
+        }
+    }
 
-        // If a hologram with our unique name exists, delete it.
-        if (hologram != null) {
-            hologram.delete();
+    /** Rebuilds the holograms of one crate, e.g. after its name or pity settings changed. */
+    public void refresh(Crate crate) {
+        if (hook == null) return;
+        for (String key : plugin.getPhysicalCrateManager().getBlocksOf(crate.getId())) {
+            create(key, crate.getId());
+        }
+    }
+
+    /** Rebuilds every hologram (on startup and /gacha reload). */
+    public void refreshAll() {
+        if (hook == null) return;
+        for (Map.Entry<String, String> entry : plugin.getPhysicalCrateManager().getAllCrateBlocks().entrySet()) {
+            create(entry.getKey(), entry.getValue());
+        }
+    }
+
+    /** Creates holograms for crates in a world that just loaded. */
+    public void refreshWorld(String worldName) {
+        if (hook == null) return;
+        for (Map.Entry<String, String> entry : plugin.getPhysicalCrateManager().getAllCrateBlocks().entrySet()) {
+            if (PhysicalCrateManager.worldOf(entry.getKey()).equals(worldName)) {
+                create(entry.getKey(), entry.getValue());
+            }
+        }
+    }
+
+    public void removeAll() {
+        if (hook == null) return;
+        for (String key : plugin.getPhysicalCrateManager().getAllCrateBlocks().keySet()) {
+            remove(key);
         }
     }
 }

@@ -1,0 +1,53 @@
+package com.kazumiii.gachacrate.util;
+
+import com.kazumiii.gachacrate.GachaCrate;
+import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
+
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+/**
+ * Small helpers for colors and messages.
+ */
+public final class Text {
+
+    private static final DecimalFormat NUMBER = new DecimalFormat("0.##", DecimalFormatSymbols.getInstance(Locale.ROOT));
+
+    private Text() {
+    }
+
+    /** Translates '&' color codes. Null becomes an empty string. */
+    public static String color(String text) {
+        return text == null ? "" : ChatColor.translateAlternateColorCodes('&', text);
+    }
+
+    public static List<String> color(List<String> lines) {
+        List<String> out = new ArrayList<>(lines.size());
+        for (String line : lines) out.add(color(line));
+        return out;
+    }
+
+    public static String strip(String text) {
+        return text == null ? "" : ChatColor.stripColor(text);
+    }
+
+    public static String prefix() {
+        return color(GachaCrate.getInstance().getConfig().getString("prefix", "&6&lGacha &8» &r"));
+    }
+
+    /** Sends a message with the plugin prefix. Supports '&' and '§' colors. */
+    public static void send(CommandSender to, String message) {
+        to.sendMessage(prefix() + color(message));
+    }
+
+    /** Formats a number with at most two decimals (25.0 -> "25", 1.255 -> "1.26"). */
+    public static String number(double value) {
+        synchronized (NUMBER) {
+            return NUMBER.format(value);
+        }
+    }
+}

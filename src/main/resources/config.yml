@@ -1,42 +1,71 @@
 # ========================================================================
-# File: config.yml
-# Location: /src/main/resources/config.yml
+# GachaCrate by Kazumiii - Main Configuration
 # ========================================================================
-# GachaCrate Plugin by Kazumiii - Main Configuration
+# Crates themselves are created and edited in-game with /gacha (saved in crates.yml).
+# Use /gacha reload after changing this file.
 
-# The 'crate-opening-mode' setting has been removed from here.
-# It is now configured per-crate in the /gacha GUI for maximum flexibility.
+# Shown in front of plugin messages. Use '&' for color codes.
+prefix: "&6&lGacha &8» &r"
 
 # --- KEY APPEARANCE ---
-# Customize the look of all gacha keys.
 key-appearance:
-  # The material to use for the key. A list of valid materials can be found here:
-  # https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html
+  # Any item material: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html
   material: "TRIPWIRE_HOOK"
-  # Set to true to make the key have an enchantment glow.
+  # Give keys an enchantment glow.
   glowing: true
 
-# Set the minimum rarity ID (from the list below) that should be announced
-# to the whole server when a player wins it.
+# --- OPENING ---
+opening:
+  # Sneak + right-click with a stack of keys to open several at once, without the animation.
+  mass-open:
+    enabled: true
+    max-per-click: 64
+  # How long (in ticks, 20 = 1 second) the reward stays on screen after an animation.
+  close-delay-ticks: 40
+  # Players can close the animation early. The reward is given instantly.
+  allow-skip: true
+
+# --- ANNOUNCEMENTS ---
+# The minimum rarity (from the list below) that is announced to the whole server.
 broadcast-minimum-rarity: "MYTHIC"
+# Launch a harmless firework when an announced reward is won.
+broadcast-firework: true
+
+# --- DATA ---
+# How often player data (pity, stats) is saved, in minutes. 0 = only on quit/shutdown.
+autosave-minutes: 5
+
+# --- HOLOGRAMS (needs DecentHolograms) ---
+hologram:
+  height: 2.2
+  # {crate} = crate name shown to players.
+  lines:
+    - "&b&l{crate}"
+    - "&eLeft-Click to Preview"
+    - "&aRight-Click with a Key to Open"
+  # Extra line added when the crate's pity system is on. Needs PlaceholderAPI.
+  pity-line: "%gachacrate_pity_text_{id}%"
 
 # --- MESSAGES ---
-# You can customize the message a player receives the first time they get a key.
-# Use {player} for the player's name. Use '&' for color codes.
+# Use '&' for color codes.
+# {player} = player name, {reward} = reward name, {rarity} = rarity name, {crate} = crate name.
 messages:
+  win: "&aYou won {reward}&a!"
+  broadcast: "&6{player} &7won {reward} &7({rarity}&7) from the {crate}&7 crate!"
   first-key-welcome:
     - "&e&l---------------------------------"
     - "&6&lWelcome to Gacha Crates!"
     - ""
     - "&fYou've received your first key, {player}!"
-    - "&fTo use it, just &bhold the key in your hand§f and §bright-click§f."
+    - "&fTo use it, &bright-click a crate block &fwhile holding the key,"
+    - "&for right-click in the air if the crate allows it."
     - ""
-    - "&7You can preview crate rewards with &e/gacha view <name>"
+    - "&7Preview rewards with &e/gacha view <crate>"
     - "&e&l---------------------------------"
 
-# Define all available rarities here.
-# 'order' is used to determine which rarities are "better" than others.
-# Higher numbers are better. Used for broadcast and pity checks.
+# --- RARITIES ---
+# 'order' decides which rarities are better. Higher = better.
+# Used for sorting, announcements and the pity system.
 rarities:
   COMMON:
     display-name: "&fCommon"
@@ -58,4 +87,3 @@ rarities:
     display-name: "&bDivine"
     color: "AQUA"
     order: 5
-    

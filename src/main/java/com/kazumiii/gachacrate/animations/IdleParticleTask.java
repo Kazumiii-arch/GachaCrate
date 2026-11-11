@@ -1,21 +1,26 @@
-// ========================================================================
-// File: IdleParticleTask.java
-// Location: /src/main/java/com/kazumiii/gachacrate/animations/IdleParticleTask.java
-// ========================================================================
 package com.kazumiii.gachacrate.animations;
 
 import com.kazumiii.gachacrate.GachaCrate;
 import com.kazumiii.gachacrate.crates.Crate;
+import com.kazumiii.gachacrate.crates.PhysicalCrateManager;
 import org.bukkit.Location;
 import org.bukkit.Particle;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.Map;
 
+/**
+ * Draws two spiralling particle streams around crate blocks that have an idle effect.
+ * Runs on the main thread and skips crates with no players nearby or in unloaded chunks.
+ */
 public class IdleParticleTask extends BukkitRunnable {
 
+    private static final double VIEW_DISTANCE_SQUARED = 32 * 32;
+
     private final GachaCrate plugin;
-    private double angle = 0; // A single angle ticker for all crates to stay in sync
+    private double angle = 0;
 
     public IdleParticleTask(GachaCrate plugin) {
         this.plugin = plugin;
@@ -23,52 +28,44 @@ public class IdleParticleTask extends BukkitRunnable {
 
     @Override
     public void run() {
-        // We get all physical crate locations every tick. This is efficient and ensures
-        // that newly placed or removed crates are instantly included or excluded.
-        Map<Location, String> locations = plugin.getPhysicalCrateManager().getAllCrateLocations();
-        if (locations.isEmpty()) return;
+        Map<String, String> blocks = plugin.getPhysicalCrateManager().getAllCrateBlocks();
+        if (blocks.isEmpty()) return;
 
-        // Increment the angle for the next tick, creating the rotation.
-        angle += Math.PI / 24;
-        if (angle > 2 * Math.PI) {
-            angle = 0; // Reset angle to create a seamless loop
-        }
+        angle += Math.PI / 16;
+        if (angle > 2 * Math.PI) angle -= 2 * Math.PI;
 
-        for (Map.Entry<Location, String> entry : locations.entrySet()) {
-            Location loc = entry.getKey();
+        for (Map.Entry<String, String> entry : blocks.entrySet()) {
             Crate crate = plugin.getCrateManager().getCrate(entry.getValue());
+            if (crate == null || crate.getIdleParticle() == null) continue;
 
-            if (crate != null && crate.getIdleParticle() != null) {
-                spawnHelixParticles(loc, crate.getIdleParticle());
-            }
+            Location block = PhysicalCrateManager.toLocation(entry.getKey());
+            if (block == null) continue;
+            World world = block.getWorld();
+            if (world == null || !world.isChunkLoaded(block.getBlockX() >> 4, block.getBlockZ() >> 4)) continue;
+            if (!anyPlayerNear(world, block)) continue;
+
+            spawnHelix(block, crate.getIdleParticle());
         }
     }
 
-    /**
-     * Spawns two intertwining spirals of particles that move up and down the block.
-     * @param blockLocation The location of the crate block.
-     * @param particle The particle type to spawn.
-     */
-    private void spawnHelixParticles(Location blockLocation, Particle particle) {
-        Location center = blockLocation.clone().add(0.5, 0, 0.5);
+    private boolean anyPlayerNear(World world, Location location) {
+        for (Player player : world.getPlayers()) {
+            if (player.getLocation().distanceSquared(location) <= VIEW_DISTANCE_SQUARED) return true;
+        }
+        return false;
+    }
+
+    private void spawnHelix(Location block, Particle particle) {
+        World world = block.getWorld();
+        double cx = block.getX() + 0.5;
+        double cz = block.getZ() + 0.5;
         double radius = 0.6;
-
-        // The 'y' position moves up and down using a sine wave based on the angle.
-        // This creates a smooth "breathing" or "bobbing" effect.
-        double y = 1.0 + Math.sin(angle * 2);
-
-        // First helix strand
-        double x1 = center.getX() + radius * Math.cos(angle);
-        double z1 = center.getZ() + radius * Math.sin(angle);
-        Location particleLoc1 = new Location(center.getWorld(), x1, center.getY() + y, z1);
-
-        // Second helix strand, opposite to the first, creating the intertwining effect.
-        double x2 = center.getX() + radius * Math.cos(angle + Math.PI);
-        double z2 = center.getZ() + radius * Math.sin(angle + Math.PI);
-        Location particleLoc2 = new Location(center.getWorld(), x2, center.getY() + y, z2);
-
-        // Spawn the particles with no extra motion data (the last four 0s).
-        center.getWorld().spawnParticle(particle, particleLoc1, 1, 0, 0, 0, 0);
-        center.getWorld().spawnParticle(particle, particleLoc2, 1, 0, 0, 0, 0);
+        double y = block.getY() + 1.0 + 0.5 * Math.sin(angle * 2);
+        try {
+            world.spawnParticle(particle, cx + radius * Math.cos(angle), y, cz + radius * Math.sin(angle), 1, 0, 0, 0, 0);
+            world.spawnParticle(particle, cx - radius * Math.cos(angle), y, cz - radius * Math.sin(angle), 1, 0, 0, 0, 0);
+        } catch (IllegalArgumentException ignored) {
+            // A particle that needs extra data slipped through; skip it.
+        }
     }
 }
