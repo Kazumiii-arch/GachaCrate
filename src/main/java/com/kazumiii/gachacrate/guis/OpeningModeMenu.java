@@ -1,22 +1,16 @@
-// ========================================================================
-// File: OpeningModeMenu.java
-// Location: /src/main/java/com/kazumiii/gachacrate/guis/OpeningModeMenu.java
-// ========================================================================
 package com.kazumiii.gachacrate.guis;
 
-import com.kazumiii.gachacrate.GachaCrate;
 import com.kazumiii.gachacrate.crates.Crate;
 import com.kazumiii.gachacrate.crates.OpeningMode;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import com.kazumiii.gachacrate.util.Items;
+import com.kazumiii.gachacrate.util.Text;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.Arrays;
-
+/**
+ * Physical Block: right-click a crate block with a key.
+ * Key in Hand: right-click anywhere while holding a key.
+ */
 public class OpeningModeMenu extends Menu {
 
     private final Crate crate;
@@ -27,55 +21,36 @@ public class OpeningModeMenu extends Menu {
     }
 
     @Override
-    public void open() {
-        inventory = Bukkit.createInventory(this, 27, "§8Opening Mode: " + crate.getName());
-        updateItems();
-        player.openInventory(inventory);
-    }
-
-    private void updateItems() {
-        // --- Toggle Button ---
-        OpeningMode currentMode = crate.getOpeningMode();
-        ItemStack toggleButton = new ItemStack(currentMode == OpeningMode.PHYSICAL_BLOCKS ? Material.CHEST : Material.TRIPWIRE_HOOK);
-        ItemMeta toggleMeta = toggleButton.getItemMeta();
-        toggleMeta.setDisplayName(ChatColor.GOLD + "Opening Mode");
-        toggleMeta.setLore(Arrays.asList(
-                "§7Current: §f" + currentMode.getDisplayName(),
-                "",
-                "§e► Click to switch mode."
-        ));
-        toggleButton.setItemMeta(toggleMeta);
-
-        // --- Back Button ---
-        ItemStack backButton = new ItemStack(Material.ARROW);
-        ItemMeta backMeta = backButton.getItemMeta();
-        backMeta.setDisplayName(ChatColor.RED + "« Back to Settings");
-        backButton.setItemMeta(backMeta);
-
-        inventory.setItem(13, toggleButton);
-        inventory.setItem(18, backButton);
+    protected String getTitle() {
+        return "§8Opening Mode: " + crate.getName();
     }
 
     @Override
-    public void handleMenu(InventoryClickEvent event) {
-        event.setCancelled(true);
-        if (event.getCurrentItem() == null) return;
+    protected int getSize() {
+        return 27;
+    }
 
-        switch (event.getCurrentItem().getType()) {
-            case CHEST:
-            case TRIPWIRE_HOOK:
-                // Toggle the mode
-                OpeningMode newMode = crate.getOpeningMode() == OpeningMode.PHYSICAL_BLOCKS ? OpeningMode.KEY_IN_HAND : OpeningMode.PHYSICAL_BLOCKS;
-                crate.setOpeningMode(newMode);
-                GachaCrate.getInstance().getCrateManager().saveCrates();
-                player.sendMessage(ChatColor.GREEN + "Opening mode set to: " + newMode.getDisplayName());
-                updateItems(); // Refresh the GUI
-                break;
-            case ARROW:
-                new CrateSettingsMenu(player, crate).open();
-                break;
-            default:
-                break;
-        }
+    @Override
+    protected void draw() {
+        fill(Material.GRAY_STAINED_GLASS_PANE);
+        modeButton(11, OpeningMode.PHYSICAL_BLOCKS, Material.CHEST,
+                "&7Players right-click a crate block", "&7while holding a key.", "&7Set blocks with &f/gacha setblock");
+        modeButton(15, OpeningMode.KEY_IN_HAND, Material.TRIPWIRE_HOOK,
+                "&7Players right-click anywhere", "&7while holding a key.");
+        button(18, Items.of(Material.ARROW).name("&e« Back to Settings").build(),
+                e -> new CrateSettingsMenu(player, crate).open());
+    }
+
+    private void modeButton(int slot, OpeningMode mode, Material icon, String... description) {
+        boolean selected = crate.getOpeningMode() == mode;
+        java.util.List<String> lore = new java.util.ArrayList<>(java.util.Arrays.asList(description));
+        lore.add("");
+        lore.add(selected ? "&a✔ Selected" : "&e► Click to select");
+        button(slot, Items.of(icon).name((selected ? "&a" : "&f") + mode.getDisplayName()).lore(lore).glow(selected).build(), e -> {
+            crate.setOpeningMode(mode);
+            plugin().getCrateManager().saveCrates();
+            Text.send(player, "&aOpening mode set to " + mode.getDisplayName() + ".");
+            refresh();
+        });
     }
 }

@@ -1,9 +1,9 @@
-package com.kazumiii.gachacrate.crate;
+package com.kazumiii.gachacrate.crates;
 
+/**
+ * A reward is either a physical item or one or more console commands.
+ */
 public enum RewardType {
-    ITEM,       // Gives an ItemStack
-    MONEY,      // Gives money (requires vault / eco give command)
-    COMMAND,    // Executes commands
-    BUNDLE,     // A bundle of multiple rewards
-    NOTHING     // For filler rewards in animation or failed rolls
+    ITEM,
+    COMMAND
 }
