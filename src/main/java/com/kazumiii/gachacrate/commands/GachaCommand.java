@@ -2,12 +2,15 @@ package com.kazumiii.gachacrate.commands;
 
 import com.kazumiii.gachacrate.GachaCrate;
 import com.kazumiii.gachacrate.crates.Crate;
+import com.kazumiii.gachacrate.crates.CrateHealth;
 import com.kazumiii.gachacrate.crates.CrateManager;
 import com.kazumiii.gachacrate.crates.OpeningMode;
 import com.kazumiii.gachacrate.crates.Rarity;
 import com.kazumiii.gachacrate.crates.Reward;
 import com.kazumiii.gachacrate.crates.StarterCrates;
+import com.kazumiii.gachacrate.guis.BackupMenu;
 import com.kazumiii.gachacrate.guis.CratePreviewMenu;
+import com.kazumiii.gachacrate.guis.GiveKeysMenu;
 import com.kazumiii.gachacrate.guis.CrateSettingsMenu;
 import com.kazumiii.gachacrate.guis.HistoryMenu;
 import com.kazumiii.gachacrate.guis.MainMenu;
@@ -90,6 +93,10 @@ public class GachaCommand implements TabExecutor {
             case "removeblock": removeBlock(sender); break;
             case "reload": reload(sender); break;
             case "setup": setup(sender); break;
+            case "clone": case "copy": cloneCrate(sender, args); break;
+            case "toggle": case "enable": case "disable": toggle(sender, args); break;
+            case "backup": case "backups": backup(sender, args); break;
+            case "givekeys": giveKeysMenu(sender, args); break;
             default:
                 Text.send(sender, "&cUnknown command. Type &a/" + label + " help &cto see all commands.");
                 break;
@@ -308,8 +315,12 @@ public class GachaCommand implements TabExecutor {
         Text.send(sender, "&6Crates (" + crates.size() + "):");
         for (Crate crate : crates) {
             int blocks = plugin.getPhysicalCrateManager().getBlocksOf(crate.getId()).size();
-            sender.sendMessage(Text.color("  &8• &e" + crate.getName() + " &7(") + crate.getDisplayName()
-                    + Text.color("&7) - " + crate.getRewards().size() + " rewards, " + blocks + " blocks"));
+            CrateHealth health = CrateHealth.check(plugin, crate);
+            String dot = health.getLevel() == CrateHealth.Level.ERROR ? "&c●" : health.getLevel() == CrateHealth.Level.WARNING ? "&e●" : "&a●";
+            sender.sendMessage(Text.color("  " + dot + " &e" + crate.getName() + " &7(") + crate.getDisplayName()
+                    + Text.color("&7) - " + crate.getRewards().size() + " rewards, " + blocks + " blocks"
+                    + (crate.isEnabled() ? "" : " &c[closed]")));
+            for (String problem : health.getProblems()) sender.sendMessage(Text.color("      " + problem));
         }
     }
 
@@ -442,6 +453,93 @@ public class GachaCommand implements TabExecutor {
         if (!(targets.size() == 1 && targets.get(0).equals(sender))) {
             Text.send(sender, "&aGave " + who + " " + amount + "x " + crate.getName() + " key" + (amount == 1 ? "" : "s") + ".");
         }
+    }
+
+    private void cloneCrate(CommandSender sender, String[] args) {
+        if (!check(sender, "gacha.admin.create")) return;
+        if (args.length < 3) {
+            Text.send(sender, "&cUsage: /gacha clone <crate> <new name>");
+            return;
+        }
+        Crate source = requireCrate(sender, args[1]);
+        if (source == null) return;
+        if (!CrateManager.isValidName(args[2])) {
+            Text.send(sender, "&cUse only letters, numbers, _ and - (max 32 characters).");
+            return;
+        }
+        Crate copy = plugin.getCrateManager().cloneCrate(source, args[2]);
+        if (copy == null) {
+            Text.send(sender, "&cA crate called '" + args[2] + "' already exists.");
+            return;
+        }
+        Text.send(sender, "&aCloned &e" + source.getName() + " &ainto &e" + copy.getName() + "&a ("
+                + copy.getRewards().size() + " rewards). Place it with &f/gacha setblock " + copy.getName());
+    }
+
+    private void toggle(CommandSender sender, String[] args) {
+        if (!check(sender, "gacha.admin.edit")) return;
+        if (args.length < 2) {
+            Text.send(sender, "&cUsage: /gacha " + args[0].toLowerCase(Locale.ROOT) + " <crate>");
+            return;
+        }
+        Crate crate = requireCrate(sender, args[1]);
+        if (crate == null) return;
+        String sub = args[0].toLowerCase(Locale.ROOT);
+        boolean enabled = sub.equals("enable") || (sub.equals("toggle") && !crate.isEnabled());
+        crate.setEnabled(enabled);
+        plugin.getCrateManager().saveCrates();
+        plugin.getHologramManager().refresh(crate);
+        Text.send(sender, crate.getDisplayName() + (enabled ? " &ais open." : " &eis now closed for maintenance."));
+    }
+
+    private void backup(CommandSender sender, String[] args) {
+        if (!check(sender, "gacha.admin.backup")) return;
+        String action = args.length > 1 ? args[1].toLowerCase(Locale.ROOT) : (sender instanceof Player ? "menu" : "list");
+        switch (action) {
+            case "menu": {
+                Player player = requirePlayer(sender);
+                if (player != null) new BackupMenu(player).open();
+                break;
+            }
+            case "now": case "create": {
+                plugin.getCrateManager().saveCrates();
+                String name = plugin.getBackupManager().create("manual");
+                Text.send(sender, name == null ? "&cNothing to back up yet." : "&aBackup created: &e" + name);
+                break;
+            }
+            case "list": {
+                List<String> backups = plugin.getBackupManager().list();
+                if (backups.isEmpty()) {
+                    Text.send(sender, "&7No backups yet.");
+                    return;
+                }
+                Text.send(sender, "&6Backups (newest first):");
+                for (int i = 0; i < backups.size() && i < 15; i++) {
+                    sender.sendMessage(Text.color("  &8• &e" + backups.get(i)));
+                }
+                sender.sendMessage(Text.color("  &7Restore with &f/gacha backup restore <name>"));
+                break;
+            }
+            case "restore": {
+                if (args.length < 3) {
+                    Text.send(sender, "&cUsage: /gacha backup restore <name>  &7(see /gacha backup list)");
+                    return;
+                }
+                String error = plugin.getBackupManager().restore(args[2]);
+                Text.send(sender, error == null ? "&aRestored &e" + args[2] + "&a. Your previous crates were backed up first." : "&c" + error);
+                break;
+            }
+            default:
+                Text.send(sender, "&cUsage: /gacha backup [now|list|restore <name>]");
+        }
+    }
+
+    private void giveKeysMenu(CommandSender sender, String[] args) {
+        Player player = requirePlayer(sender);
+        if (player == null || !check(sender, "gacha.admin.givekey")) return;
+        Crate crate = args.length > 1 ? requireCrate(sender, args[1]) : null;
+        if (args.length > 1 && crate == null) return;
+        new GiveKeysMenu(player, crate, null).open();
     }
 
     private void sendFirstKeyWelcome(Player target) {
@@ -636,6 +734,10 @@ public class GachaCommand implements TabExecutor {
             addIf(sender, subs, "gacha.admin.resetpity", "resetpity");
             addIf(sender, subs, "gacha.admin.setblock", "setblock", "removeblock");
             addIf(sender, subs, "gacha.admin.reload", "reload");
+            addIf(sender, subs, "gacha.admin.create", "clone");
+            addIf(sender, subs, "gacha.admin.edit", "toggle", "enable", "disable");
+            addIf(sender, subs, "gacha.admin.backup", "backup");
+            addIf(sender, subs, "gacha.admin.givekey", "givekeys");
             return filter(subs, args[0]);
         }
 
@@ -647,7 +749,11 @@ public class GachaCommand implements TabExecutor {
             switch (sub) {
                 case "view": case "preview": case "edit": case "delete": case "additem": case "addcmd":
                 case "open": case "setblock": case "top":
+                case "clone": case "copy": case "toggle": case "enable": case "disable": case "givekeys":
                     return filter(crates, args[1]);
+                case "backup": case "backups":
+                    return sender.hasPermission("gacha.admin.backup")
+                            ? filter(Arrays.asList("now", "list", "restore"), args[1]) : Collections.emptyList();
                 case "buy": {
                     List<String> forSale = new ArrayList<>();
                     for (Crate crate : plugin.getShopManager().getCratesForSale()) forSale.add(crate.getName());
@@ -678,6 +784,9 @@ public class GachaCommand implements TabExecutor {
                     return filter(Arrays.asList("1", "5", "10"), args[2]);
                 case "open":
                     return filter(players, args[2]);
+                case "backup": case "backups":
+                    return args[1].equalsIgnoreCase("restore") && sender.hasPermission("gacha.admin.backup")
+                            ? filter(plugin.getBackupManager().list(), args[2]) : Collections.emptyList();
                 case "resetpity": {
                     List<String> options = new ArrayList<>(crates);
                     options.add("all");

@@ -29,6 +29,9 @@ public class Crate {
     private LocalDate startDate;
     private LocalDate endDate;
 
+    /** Disabled crates can't be opened, bought or claimed (maintenance mode). */
+    private boolean enabled = true;
+
     private int dailyFreeKeys = 0;
     private double keyPrice = 0;
 
@@ -61,6 +64,16 @@ public class Crate {
     public List<Reward> getRewards() { return rewards; }
     public void addReward(Reward reward) { rewards.add(reward); }
     public void removeReward(Reward reward) { rewards.remove(reward); }
+
+    /** Sorts rewards best rarity first, then rarest (lowest weight) first. */
+    public void sortRewards() {
+        rewards.sort((a, b) -> {
+            int ra = a.getRarity() == null ? 0 : a.getRarity().getOrder();
+            int rb = b.getRarity() == null ? 0 : b.getRarity().getOrder();
+            if (ra != rb) return Integer.compare(rb, ra);
+            return Double.compare(a.getChance(), b.getChance());
+        });
+    }
 
     public Reward getRewardById(UUID id) {
         for (Reward reward : rewards) {
@@ -114,6 +127,15 @@ public class Crate {
         if (!timeLimitEnabled) return true;
         if (startDate != null && today.isBefore(startDate)) return false;
         return endDate == null || !today.isAfter(endDate);
+    }
+
+    // --- Maintenance ---
+    public boolean isEnabled() { return enabled; }
+    public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
+    /** True if players can open the crate today: enabled and inside its time limit. */
+    public boolean isOpenable(LocalDate today) {
+        return enabled && isAvailable(today);
     }
 
     // --- Daily keys & shop ---

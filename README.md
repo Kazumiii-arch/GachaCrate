@@ -4,6 +4,22 @@ A gacha crate plugin for Minecraft Survival servers (Spigot / Paper 1.20 – 1.2
 
 ## Features
 
+### Easy management (new in 2.5)
+
+- **Admin dashboard** (`/gacha`): server stats at the top (crates, rewards, crate blocks, total opens, players, and whether Vault, PlaceholderAPI and holograms are connected), and every crate with a status dot:
+  - 🟢 ready, 🟡 warning (no crate block placed, closed, time limit ended…), 🔴 broken (no rewards, pity can never trigger…)
+  - Hover a crate to see exactly what's wrong. The **filter** button shows only crates that need attention.
+  - Shortcuts on a crate: **left-click** settings, **right-click** rewards, **shift + left** preview as a player, **shift + right** close/open.
+- **Maintenance mode**: close a crate with one click (or `/gacha toggle <crate>`). Nobody can open it, buy its keys or claim its daily keys, and its hologram says *Closed for maintenance*. Staff with `gacha.bypass.disabled` can still test it.
+- **Clone crates**: copy a crate with every setting and reward (`/gacha clone <crate> <new>` or the button in its settings), great for seasonal or event versions.
+- **Bulk add rewards**: drop up to 36 items into one menu, pick a rarity and weight, done.
+- **Faster reward editing**: right-click a reward to duplicate it, sort rewards by rarity with one click, and see each rarity's total chance in the reward list.
+- **Give keys with clicks** (`/gacha givekeys`): pick a crate and amount, click a player's head, or give everyone online. Offline players work too.
+- **Automatic backups**: crates and crate blocks are backed up when the server starts, while you edit, and before a crate is deleted. Restore any backup from the **Backups** menu or `/gacha backup restore <name>`. A restore backs up your current crates first, so it can be undone too.
+- **Polished menus**: click and success sounds (can be turned off with `menus.click-sound`), clear instructions on every button.
+
+### Gameplay
+
 - **In-game editor** (`/gacha`): create crates, add item and command rewards, and set rarities and weights. No file editing needed.
 - **Rarities** from `config.yml`, with rewards sorted best-first in the preview.
 - **Real chances**: the preview shows each reward's actual % chance.
@@ -77,6 +93,10 @@ A gacha crate plugin for Minecraft Survival servers (Spigot / Paper 1.20 – 1.2
 | `/gacha setblock <crate>` | Make the block you look at a crate | `gacha.admin.setblock` |
 | `/gacha removeblock` | Remove the crate you look at | `gacha.admin.setblock` |
 | `/gacha setup` | Create the 4 starter crates | `gacha.admin.create` |
+| `/gacha clone <crate> <new name>` | Copy a crate with all its rewards | `gacha.admin.create` |
+| `/gacha toggle <crate>` | Close a crate for maintenance, or open it again (also `enable` / `disable`) | `gacha.admin.edit` |
+| `/gacha givekeys [crate]` | Give keys with a menu | `gacha.admin.givekey` |
+| `/gacha backup [now\|list\|restore <name>]` | Make, list or restore backups (no argument opens the menu) | `gacha.admin.backup` |
 | `/gacha reload` | Reload all files | `gacha.admin.reload` |
 
 Aliases: `/gc`, `/crate`.
@@ -92,6 +112,7 @@ Aliases: `/gc`, `/crate`.
 | `gacha.user.open.<crate>` | Open one crate. Negate it to lock a crate to certain ranks. | everyone |
 | `gacha.bypass.cooldown` | Ignore `opening.cooldown-seconds` | op |
 | `gacha.bypass.timelimit` | Open time-limited crates at any time | op |
+| `gacha.bypass.disabled` | Open crates that are closed for maintenance | op |
 | `gacha.daily.multiplier.<n>` | Get n times the daily free keys (e.g. `.2` for VIP) | — |
 | `gacha.massopen.<n>` | Open up to n keys at once with sneak + right-click | — |
 | `gacha.admin.update` | Hear about new versions on join | op |
@@ -114,6 +135,16 @@ Every command's own permission is listed in `plugin.yml`.
 Open a crate's settings (`/gacha edit <crate>`):
 - **Daily Free Keys**: click to set how many keys each player gets per day (0 = off). The count resets at midnight, server time.
 - **Key Price**: click and type a price (0 = not for sale). Players can buy from `/gacha shop`, `/gacha buy`, or the **Buy Keys** button in the crate preview.
+
+## Backups
+
+Backups live in `plugins/GachaCrate/backups/`, one folder per backup with `crates.yml` and `locations.yml`. They're made:
+- when the server starts,
+- at most every `backups.interval-minutes` (default 30) while crates are being edited,
+- right before a crate is deleted,
+- whenever you click **Back Up Now** or run `/gacha backup now`.
+
+Identical automatic backups are skipped, and only the newest `backups.keep` (default 20) are kept.
 
 ## Weights and chances
 

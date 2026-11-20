@@ -4,6 +4,7 @@ import com.kazumiii.gachacrate.GachaCrate;
 import com.kazumiii.gachacrate.util.Items;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -146,7 +147,10 @@ public abstract class Menu implements InventoryHolder {
 
         event.setCancelled(true);
         Consumer<InventoryClickEvent> action = actions.get(event.getSlot());
-        if (action != null) action.accept(event);
+        if (action != null) {
+            clickSound();
+            action.accept(event);
+        }
     }
 
     public void handleDrag(InventoryDragEvent event) {
@@ -176,6 +180,32 @@ public abstract class Menu implements InventoryHolder {
                 player.getWorld().dropItemNaturally(player.getLocation(), leftover);
             }
         }
+    }
+
+    /** The soft "click" heard when pressing a button (menus.click-sound in config.yml). */
+    protected void clickSound() {
+        if (!plugin().getConfig().getBoolean("menus.click-sound", true)) return;
+        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.4f, 1.6f);
+    }
+
+    /** A positive "ding" for completed actions (saved, created, given). */
+    protected void successSound() {
+        if (!plugin().getConfig().getBoolean("menus.click-sound", true)) return;
+        player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.6f, 1.4f);
+    }
+
+    /** A low "bonk" for errors. */
+    protected void errorSound() {
+        if (!plugin().getConfig().getBoolean("menus.click-sound", true)) return;
+        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.7f, 0.6f);
+    }
+
+    /** Checks a permission and tells the player (with a sound) if they don't have it. */
+    protected boolean allowed(String permission, String what) {
+        if (player.hasPermission(permission)) return true;
+        errorSound();
+        com.kazumiii.gachacrate.util.Text.send(player, "&cYou don't have permission to " + what + ".");
+        return false;
     }
 
     /** Opens another menu one tick later (safe to call from inside click handlers). */

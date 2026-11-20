@@ -1,6 +1,7 @@
 package com.kazumiii.gachacrate;
 
 import com.kazumiii.gachacrate.animations.IdleParticleTask;
+import com.kazumiii.gachacrate.backup.BackupManager;
 import com.kazumiii.gachacrate.commands.GachaCommand;
 import com.kazumiii.gachacrate.crates.CrateManager;
 import com.kazumiii.gachacrate.crates.CrateOpener;
@@ -42,6 +43,7 @@ public final class GachaCrate extends JavaPlugin {
     private LeaderboardManager leaderboardManager;
     private ShopManager shopManager;
     private WinLogger winLogger;
+    private BackupManager backupManager;
     private BukkitTask particleTask;
     private boolean placeholderApiEnabled;
 
@@ -49,6 +51,10 @@ public final class GachaCrate extends JavaPlugin {
     public void onEnable() {
         instance = this;
         saveDefaultConfig();
+
+        // Copy the crate files before anything can change them.
+        backupManager = new BackupManager(this);
+        if (getConfig().getBoolean("backups.enabled", true)) backupManager.create("startup");
 
         rarityManager = new RarityManager(this);
         keyManager = new KeyManager(this);
@@ -150,5 +156,6 @@ public final class GachaCrate extends JavaPlugin {
     public LeaderboardManager getLeaderboardManager() { return leaderboardManager; }
     public ShopManager getShopManager() { return shopManager; }
     public WinLogger getWinLogger() { return winLogger; }
+    public BackupManager getBackupManager() { return backupManager; }
     public boolean isPlaceholderApiEnabled() { return placeholderApiEnabled; }
 }

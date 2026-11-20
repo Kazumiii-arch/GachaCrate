@@ -77,8 +77,10 @@ public class CrateManager {
 
     /** Deletes a crate, its physical blocks and its holograms. */
     public void deleteCrate(String name) {
+        if (getCrate(name) == null) return;
+        // Always keep a copy, so a deleted crate can be brought back from /gacha backup.
+        plugin.getBackupManager().create("before-delete");
         Crate crate = crates.remove(name.toLowerCase(Locale.ROOT));
-        if (crate == null) return;
         plugin.getPhysicalCrateManager().removeAllOf(crate.getId());
         unregisterPermission(crate);
         saveCrates();
@@ -114,39 +116,10 @@ public class CrateManager {
         FileConfiguration config = new YamlConfiguration();
 
         for (Crate crate : crates.values()) {
-            ConfigurationSection section = config.createSection("crates." + crate.getName());
-
-            if (crate.getRawDisplayName() != null) section.set("display-name", crate.getRawDisplayName());
-            section.set("opening-mode", crate.getOpeningMode().name());
-            section.set("animation-type", crate.getAnimationType().name());
-            if (crate.getIdleParticle() != null) section.set("idle-particle", crate.getIdleParticle().name());
-            section.set("idle-particle-style", crate.getParticleStyle().name());
-
-            section.set("pity-system.enabled", crate.isPityEnabled());
-            section.set("pity-system.threshold", crate.getPityThreshold());
-            section.set("pity-system.pity-rarity-minimum", crate.getPityRarityMinimum());
-
-            section.set("daily-free-keys", crate.getDailyFreeKeys());
-            section.set("key-price", crate.getKeyPrice());
-
-            section.set("time-limit.enabled", crate.isTimeLimitEnabled());
-            if (crate.getStartDate() != null) section.set("time-limit.start-date", crate.getStartDate().toString());
-            if (crate.getEndDate() != null) section.set("time-limit.end-date", crate.getEndDate().toString());
-
-            ConfigurationSection rewards = section.createSection("rewards");
-            for (Reward reward : crate.getRewards()) {
-                ConfigurationSection r = rewards.createSection(reward.getUniqueId().toString());
-                r.set("type", reward.getType().name());
-                r.set("rarity", reward.getRarity() != null ? reward.getRarity().getId() : null);
-                r.set("chance", reward.getChance());
-                if (reward.getType() == RewardType.ITEM) {
-                    r.set("item", reward.getItem());
-                } else {
-                    r.set("commands", reward.getCommands());
-                    if (reward.getPreviewItem() != null) r.set("preview-item", reward.getPreviewItem());
-                }
-            }
+            writeCrate(config.createSection("crates." + crate.getName()), crate);
         }
+
+        plugin.getBackupManager().backupIfDue(cratesFile);
 
         try {
             if (!plugin.getDataFolder().exists()) plugin.getDataFolder().mkdirs();
@@ -163,6 +136,74 @@ public class CrateManager {
         } catch (IOException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not save crates.yml!", e);
         }
+    }
+
+    /** Writes every setting and reward of a crate into a YAML section. */
+    private void writeCrate(ConfigurationSection section, Crate crate) {
+        if (crate.getRawDisplayName() != null) section.set("display-name", crate.getRawDisplayName());
+        section.set("enabled", crate.isEnabled());
+        section.set("opening-mode", crate.getOpeningMode().name());
+        section.set("animation-type", crate.getAnimationType().name());
+        if (crate.getIdleParticle() != null) section.set("idle-particle", crate.getIdleParticle().name());
+        section.set("idle-particle-style", crate.getParticleStyle().name());
+
+        section.set("pity-system.enabled", crate.isPityEnabled());
+        section.set("pity-system.threshold", crate.getPityThreshold());
+        section.set("pity-system.pity-rarity-minimum", crate.getPityRarityMinimum());
+
+        section.set("daily-free-keys", crate.getDailyFreeKeys());
+        section.set("key-price", crate.getKeyPrice());
+
+        section.set("time-limit.enabled", crate.isTimeLimitEnabled());
+        if (crate.getStartDate() != null) section.set("time-limit.start-date", crate.getStartDate().toString());
+        if (crate.getEndDate() != null) section.set("time-limit.end-date", crate.getEndDate().toString());
+
+        ConfigurationSection rewards = section.createSection("rewards");
+        for (Reward reward : crate.getRewards()) {
+            ConfigurationSection r = rewards.createSection(reward.getUniqueId().toString());
+            r.set("type", reward.getType().name());
+            r.set("rarity", reward.getRarity() != null ? reward.getRarity().getId() : null);
+            r.set("chance", reward.getChance());
+            if (reward.getType() == RewardType.ITEM) {
+                r.set("item", reward.getItem());
+            } else {
+                r.set("commands", reward.getCommands());
+                if (reward.getPreviewItem() != null) r.set("preview-item", reward.getPreviewItem());
+            }
+        }
+    }
+
+    /**
+     * Makes a copy of a crate under a new name, with all its settings and rewards.
+     * Crate blocks are not copied. Returns null if the name is taken.
+     */
+    public Crate cloneCrate(Crate source, String newName) {
+        if (getCrate(newName) != null) return null;
+        YamlConfiguration temp = new YamlConfiguration();
+        writeCrate(temp.createSection("c"), source);
+        Crate copy = loadCrate(newName, temp.getConfigurationSection("c"), true);
+        crates.put(copy.getId(), copy);
+        registerPermission(copy);
+        saveCrates();
+        return copy;
+    }
+
+    /** Makes a copy of a reward (with a new id) and puts it right after the original. */
+    public Reward duplicateReward(Crate crate, Reward reward) {
+        ItemStack item = reward.getItem() == null ? null : reward.getItem().clone();
+        ItemStack preview = reward.getPreviewItem() == null ? null : reward.getPreviewItem().clone();
+        Reward copy = new Reward(UUID.randomUUID(), reward.getType(), item, reward.getCommands(), preview,
+                reward.getRarity(), reward.getChance());
+        int index = crate.getRewards().indexOf(reward);
+        if (index < 0) crate.getRewards().add(copy);
+        else crate.getRewards().add(index + 1, copy);
+        saveCrates();
+        return copy;
+    }
+
+    /** The crates.yml file (used by backups). */
+    public File getFile() {
+        return cratesFile;
     }
 
     // ------------------------------------------------------------------
@@ -186,7 +227,7 @@ public class CrateManager {
             ConfigurationSection section = cratesSection.getConfigurationSection(crateName);
             if (section == null) continue;
             try {
-                Crate crate = loadCrate(crateName, section);
+                Crate crate = loadCrate(crateName, section, false);
                 crates.put(crate.getId(), crate);
                 registerPermission(crate);
             } catch (Exception e) {
@@ -196,9 +237,11 @@ public class CrateManager {
         plugin.getLogger().info("Loaded " + crates.size() + " crates.");
     }
 
-    private Crate loadCrate(String crateName, ConfigurationSection section) {
+    /** @param freshIds give every reward a new id (used when copying a crate) */
+    private Crate loadCrate(String crateName, ConfigurationSection section, boolean freshIds) {
         Crate crate = new Crate(crateName);
         crate.setDisplayName(section.getString("display-name"));
+        crate.setEnabled(section.getBoolean("enabled", true));
         crate.setOpeningMode(parseEnum(OpeningMode.class, section.getString("opening-mode"), OpeningMode.PHYSICAL_BLOCKS));
         crate.setAnimationType(parseEnum(AnimationType.class, section.getString("animation-type"), AnimationType.REEL));
 
@@ -228,7 +271,8 @@ public class CrateManager {
         ConfigurationSection rewards = section.getConfigurationSection("rewards");
         if (rewards != null) {
             for (String rewardId : rewards.getKeys(false)) {
-                Reward reward = loadReward(crateName, rewardId, rewards.getConfigurationSection(rewardId));
+                Reward reward = loadReward(crateName, freshIds ? UUID.randomUUID().toString() : rewardId,
+                        rewards.getConfigurationSection(rewardId));
                 if (reward != null) crate.addReward(reward);
             }
         }

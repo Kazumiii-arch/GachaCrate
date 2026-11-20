@@ -79,6 +79,22 @@ logging:
   # Write every win to plugins/GachaCrate/logs/wins-<date>.log (useful for support tickets).
   wins-to-file: true
 
+# --- ADMIN MENUS ---
+menus:
+  # Play a soft click when pressing menu buttons, and a ding when something is saved.
+  click-sound: true
+
+# --- BACKUPS ---
+# Copies of crates.yml and locations.yml in plugins/GachaCrate/backups/.
+# Restore from /gacha backup or the Backups button in the admin dashboard.
+backups:
+  enabled: true
+  # While crates are being edited, make at most one automatic backup per this many minutes.
+  # A backup is also made every time the server starts.
+  interval-minutes: 30
+  # How many backups to keep. The oldest are deleted.
+  keep: 20
+
 # --- DATA ---
 # How often player data (pity, stats) is saved, in minutes. 0 = only on quit/shutdown.
 autosave-minutes: 5
@@ -105,6 +121,8 @@ hologram:
   pity-line: "%gachacrate_pity_text_{id}%"
   # Used instead when PlaceholderAPI isn't installed.
   pity-line-no-papi: "&dGuaranteed {rarity} &dwithin {threshold} opens"
+  # Shown instead of the pity line while a crate is closed for maintenance.
+  closed-line: "&c&lClosed for maintenance"
 
   # Only for provider: commands. Run from the console.
   # {name} = hologram name, {world} {x} {y} {z} = location, {line} = one line (add-line), {line1} {line2}... , {lines}.

@@ -57,16 +57,20 @@ final class HelpMenu {
         add("Admin", "gacha.admin.edit", c + " list", "List all crates");
         add("Admin", "gacha.admin.create", c + " create <name>", "Create a new crate");
         add("Admin", "gacha.admin.create", c + " setup", "Create 4 ready-made crates (Vote to Legendary)");
+        add("Admin", "gacha.admin.create", c + " clone <crate> <new name>", "Copy a crate with all its rewards");
         add("Admin", "gacha.admin.delete", c + " delete <crate>", "Delete a crate");
+        add("Admin", "gacha.admin.edit", c + " toggle <crate>", "Close a crate for maintenance (or open it again)");
         add("Admin", "gacha.admin.additem", c + " additem <crate> <rarity> <weight>", "Add the item in your hand");
         add("Admin", "gacha.admin.addcmd", c + " addcmd <crate> <rarity> <weight> <cmd>", "Add a command reward");
         add("Admin", "gacha.admin.givekey", c + " givekey <player|all> <crate> [amount]", "Give keys (works for offline players too)");
+        add("Admin", "gacha.admin.givekey", c + " givekeys [crate]", "Give keys with a menu (click a player)");
         add("Admin", "gacha.admin.open", c + " open <crate> [player] [amount]", "Open a crate for free");
         add("Admin", "gacha.admin.setblock", c + " setblock <crate>", "Turn the block you look at into a crate");
         add("Admin", "gacha.admin.setblock", c + " removeblock", "Remove the crate you look at");
         add("Admin", "gacha.admin.stats.other", c + " stats <player>", "Another player's stats");
         add("Admin", "gacha.admin.history.other", c + " history <player>", "Another player's wins");
         add("Admin", "gacha.admin.resetpity", c + " resetpity <player> <crate|all>", "Reset pity");
+        add("Admin", "gacha.admin.backup", c + " backup [now|list|restore <name>]", "Back up or restore your crates");
         add("Admin", "gacha.admin.reload", c + " reload", "Reload all files");
     }
 

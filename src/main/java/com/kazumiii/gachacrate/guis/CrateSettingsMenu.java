@@ -4,6 +4,8 @@ import com.kazumiii.gachacrate.animations.AnimationSelectorMenu;
 import com.kazumiii.gachacrate.animations.IdleParticleMenu;
 import com.kazumiii.gachacrate.conversation.ChatPrompt;
 import com.kazumiii.gachacrate.crates.Crate;
+import com.kazumiii.gachacrate.crates.CrateHealth;
+import com.kazumiii.gachacrate.crates.CrateManager;
 import com.kazumiii.gachacrate.util.Items;
 import com.kazumiii.gachacrate.util.Text;
 import org.bukkit.Material;
@@ -35,8 +37,44 @@ public class CrateSettingsMenu extends Menu {
     protected void draw() {
         fill(Material.GRAY_STAINED_GLASS_PANE);
 
-        item(4, Items.of(Material.CHEST).name(crate.getDisplayName())
-                .lore("&7Id: &f" + crate.getName(), "&7Rewards: &f" + crate.getRewards().size()).build());
+        CrateHealth health = CrateHealth.check(plugin(), crate);
+        java.util.List<String> info = new java.util.ArrayList<>();
+        info.add("&7Id: &f" + crate.getName());
+        info.add("&7Rewards: &f" + crate.getRewards().size());
+        info.add("&7Opened: &f" + plugin().getLeaderboardManager().totalOpens(crate.getId()) + " times");
+        info.add("");
+        if (health.isOk()) info.add("&a✔ Ready: no problems found");
+        else info.addAll(health.getProblems());
+        item(4, Items.of(health.getLevel() == CrateHealth.Level.ERROR ? Material.TRAPPED_CHEST : Material.CHEST)
+                .name(crate.getDisplayName()).lore(info).glow(health.isOk()).build());
+
+        button(13, Items.of(crate.isEnabled() ? Material.LIME_DYE : Material.GRAY_DYE)
+                .name(crate.isEnabled() ? "&a&lOPEN" : "&c&lCLOSED &7(maintenance)")
+                .lore(crate.isEnabled()
+                                ? new String[]{"&7Players can open this crate.", "", "&e► Click to close it for maintenance"}
+                                : new String[]{"&7Nobody can open, buy or claim", "&7keys for this crate right now.",
+                                "&8(bypass: gacha.bypass.disabled)", "", "&e► Click to open it again"})
+                .build(), e -> {
+            crate.setEnabled(!crate.isEnabled());
+            saveAndRefreshHolograms();
+            if (crate.isEnabled()) successSound();
+            Text.send(player, crate.getDisplayName() + (crate.isEnabled() ? " &ais open again." : " &eis now closed for maintenance."));
+            refresh();
+        });
+
+        button(40, Items.of(Material.STRUCTURE_VOID).name("&bClone Crate")
+                .lore("&7Copy every setting and reward", "&7into a new crate. Great for", "&7seasonal or event versions.",
+                        "", "&e► Click and type a name").build(), e -> {
+            if (!allowed("gacha.admin.create", "create crates")) return;
+            ChatPrompt.ask(player, "&eType a name for the copy of &f" + crate.getName(), input -> {
+                if (!CrateManager.isValidName(input)) return "Use only letters, numbers, _ and - (max 32 characters).";
+                Crate copy = plugin().getCrateManager().cloneCrate(crate, input);
+                if (copy == null) return "A crate called '" + input + "' already exists.";
+                Text.send(player, "&aCloned into &e" + copy.getName() + "&a. Place it with &f/gacha setblock " + copy.getName());
+                openLater(new CrateSettingsMenu(player, copy));
+                return null;
+            }, this::open);
+        });
 
         button(10, Items.of(Material.CHEST).name("&bView & Edit Rewards")
                 .lore("&7Add, remove or edit the", "&7rewards inside this crate.").build(),
@@ -84,10 +122,11 @@ public class CrateSettingsMenu extends Menu {
                     }, this::open);
                 });
 
-        button(22, Items.of(Material.TRIPWIRE_HOOK).name("&eGet Keys")
-                .lore("&7Click: 1 key", "&7Shift-click: 16 keys").build(), e -> {
-            if (!player.hasPermission("gacha.admin.givekey")) {
-                Text.send(player, "&cYou don't have permission to give keys.");
+        button(22, Items.of(Material.TRIPWIRE_HOOK).name("&eKeys")
+                .lore("&7Left-click: get 1 key", "&7Shift-click: get 16 keys", "&7Right-click: give keys to players").build(), e -> {
+            if (!allowed("gacha.admin.givekey", "give keys")) return;
+            if (e.isRightClick() && !e.isShiftClick()) {
+                new GiveKeysMenu(player, crate, this).open();
                 return;
             }
             int amount = e.isShiftClick() ? 16 : 1;
@@ -146,7 +185,7 @@ public class CrateSettingsMenu extends Menu {
                 e -> new MainMenu(player).open());
 
         button(44, Items.of(Material.LAVA_BUCKET).name("&c&lDelete Crate")
-                .lore("&7Deletes this crate, its rewards", "&7and its crate blocks.", "", "&cThis can't be undone!").build(),
+                .lore("&7Deletes this crate, its rewards", "&7and its crate blocks.", "", "&7A backup is made first, so you", "&7can bring it back from &fBackups&7.").build(),
                 e -> {
                     if (!player.hasPermission("gacha.admin.delete")) {
                         Text.send(player, "&cYou don't have permission to delete crates.");

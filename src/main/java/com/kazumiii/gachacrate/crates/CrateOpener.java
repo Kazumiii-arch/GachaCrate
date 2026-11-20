@@ -90,6 +90,10 @@ public class CrateOpener {
                 return false;
             }
         }
+        if (!crate.isEnabled() && !player.hasPermission("gacha.bypass.disabled")) {
+            Text.send(player, "&cThis crate is closed for maintenance. Please try again later.");
+            return false;
+        }
         LocalDate today = LocalDate.now();
         if (!crate.isAvailable(today) && !player.hasPermission("gacha.bypass.timelimit")) {
             if (crate.getStartDate() != null && today.isBefore(crate.getStartDate())) {

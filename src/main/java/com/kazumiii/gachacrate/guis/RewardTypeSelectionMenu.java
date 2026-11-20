@@ -60,6 +60,10 @@ public class RewardTypeSelectionMenu extends Menu {
                 .lore("&7Run console commands as a reward,", "&7e.g. give money or a rank.").build(),
                 e -> askCommands());
 
+        button(22, Items.of(Material.SHULKER_BOX).name("&a&lBulk Add Items").glow(true)
+                .lore("&7Drop up to 36 items at once.", "&7Each becomes its own reward.").build(),
+                e -> new BulkAddMenu(player, crate).open());
+
         button(18, Items.of(Material.ARROW).name("&e« Back").build(),
                 e -> new CrateEditorMenu(player, crate).open());
     }

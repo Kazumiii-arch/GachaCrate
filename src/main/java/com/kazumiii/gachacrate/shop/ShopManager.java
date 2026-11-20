@@ -63,7 +63,7 @@ public class ShopManager {
         List<Crate> list = new ArrayList<>();
         LocalDate today = LocalDate.now();
         for (Crate crate : plugin.getCrateManager().getAllCrates().values()) {
-            if (crate.getKeyPrice() > 0 && crate.isAvailable(today)) list.add(crate);
+            if (crate.getKeyPrice() > 0 && crate.isOpenable(today)) list.add(crate);
         }
         return list;
     }
@@ -82,7 +82,7 @@ public class ShopManager {
             Text.send(player, "&cKeys for this crate can't be bought.");
             return false;
         }
-        if (!crate.isAvailable(LocalDate.now())) {
+        if (!crate.isOpenable(LocalDate.now())) {
             Text.send(player, "&cThis crate isn't available right now.");
             return false;
         }
@@ -126,7 +126,7 @@ public class ShopManager {
         if (data == null || !player.hasPermission("gacha.user.daily")) return list;
         LocalDate today = LocalDate.now();
         for (Crate crate : plugin.getCrateManager().getAllCrates().values()) {
-            if (crate.getDailyFreeKeys() > 0 && crate.isAvailable(today) && !data.hasClaimedDaily(crate.getName(), today)) {
+            if (crate.getDailyFreeKeys() > 0 && crate.isOpenable(today) && !data.hasClaimedDaily(crate.getName(), today)) {
                 list.add(crate);
             }
         }

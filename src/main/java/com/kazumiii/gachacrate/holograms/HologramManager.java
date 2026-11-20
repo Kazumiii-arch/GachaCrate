@@ -106,6 +106,11 @@ public class HologramManager {
     private List<String> linesFor(Crate crate) {
         List<String> lines = new ArrayList<>();
         for (String line : plugin.getConfig().getStringList("hologram.lines")) lines.add(fill(line, crate));
+        if (!crate.isEnabled()) {
+            String closed = plugin.getConfig().getString("hologram.closed-line", "&c&lClosed for maintenance");
+            if (closed != null && !closed.isEmpty()) lines.add(fill(closed, crate));
+            return lines;
+        }
         if (crate.isPityEnabled()) {
             boolean papi = isInstalled("PlaceholderAPI");
             String pityLine = papi

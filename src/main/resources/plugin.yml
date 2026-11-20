@@ -19,7 +19,7 @@ commands:
 #   gacha.*      everything
 #   gacha.admin  all admin commands
 #   gacha.user   all player features (everyone has it by default)
-#   gacha.bypass all bypasses (cooldown, time limits)
+#   gacha.bypass all bypasses (cooldown, time limits, closed crates)
 #
 # Per-crate:  gacha.user.open.<crate>   (everyone by default; negate to lock a crate)
 # Rank perks: gacha.daily.multiplier.<n>   e.g. .2 = double daily keys
@@ -51,6 +51,7 @@ permissions:
       gacha.admin.resetpity: true
       gacha.admin.reload: true
       gacha.admin.update: true
+      gacha.admin.backup: true
 
   gacha.user:
     description: All player features.
@@ -73,6 +74,7 @@ permissions:
     children:
       gacha.bypass.cooldown: true
       gacha.bypass.timelimit: true
+      gacha.bypass.disabled: true
 
   # --- Admin ---
   gacha.admin.edit:
@@ -114,6 +116,9 @@ permissions:
   gacha.admin.update:
     description: Get told on join when a new version is out.
     default: op
+  gacha.admin.backup:
+    description: Create and restore crate backups.
+    default: op
 
   # --- Player ---
   gacha.user.menu:
@@ -153,4 +158,7 @@ permissions:
     default: op
   gacha.bypass.timelimit:
     description: Open time-limited crates at any time.
+    default: op
+  gacha.bypass.disabled:
+    description: Open crates that are closed for maintenance (for testing).
     default: op

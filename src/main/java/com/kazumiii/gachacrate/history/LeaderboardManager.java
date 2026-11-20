@@ -95,6 +95,28 @@ public class LeaderboardManager {
         totals.put(data.getPlayerUUID(), toTotals(data));
     }
 
+    /** Crates opened by all players together (0 until loaded). */
+    public long totalOpens() {
+        long sum = 0;
+        for (Totals t : totals.values()) sum += t.total();
+        return sum;
+    }
+
+    /** Times one crate was opened by all players together. */
+    public long totalOpens(String crateId) {
+        String key = crateId.toLowerCase(Locale.ROOT);
+        long sum = 0;
+        for (Totals t : totals.values()) sum += t.opened.getOrDefault(key, 0);
+        return sum;
+    }
+
+    /** Players who opened at least one crate. */
+    public int playerCount() {
+        int count = 0;
+        for (Totals t : totals.values()) if (t.total() > 0) count++;
+        return count;
+    }
+
     public boolean isLoaded() {
         return loaded;
     }
